@@ -3,7 +3,7 @@ import Web3 from 'web3';
 import { TextField, Button, Select, MenuItem, FormControl } from '@material-ui/core';
 import db from "./firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
-import {CONTRACT_ADDRESS} from "../constant"
+import { CONTRACT_ADDRESS } from "../constant"
 import useStyles from './style';
 import { useNavigate } from 'react-router-dom';
 
@@ -32,18 +32,19 @@ const MintToken = ({ isConnected }) => {
   const [allProducts, setAllProducts] = useState([]);
   const [quantity, setQuantity] = useState('');
   const navigate = useNavigate();
+
+
   function convertToDigitString(number, digits) {
     // Convert the number to a string
     let numberString = String(number);
-    
+
     // Pad the string with leading zeros if necessary
     while (numberString.length < digits) {
       numberString = '0' + numberString;
     }
-    console.log(number+" : "+numberString);
     return numberString;
   }
-  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -59,7 +60,7 @@ const MintToken = ({ isConnected }) => {
 
       if (docSnap.exists() && docProductSnap.exists()) {
 
-        const tokenId = String(docProductSnap.data().productTokenId)+convertToDigitString(docSnap.data().companyTokenId,6)+convertToDigitString(0,14);
+        const tokenId = String(docProductSnap.data().productTokenId) + convertToDigitString(docSnap.data().companyTokenId, 6) + convertToDigitString(0, 14);
 
         // const receipt = await contract.methods
         //   .mint(walletAddress, tokenId, quantity, '0x00')
