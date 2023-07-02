@@ -108,7 +108,7 @@ const AssetTransfer = ({ isConnected }) => {
 
   const fetchProduct = async () => {
     const xhr = new XMLHttpRequest();
-    xhr.open("GET", "https://deep-index.moralis.io/api/v2/0xE55D357615a3AD3c28204CB7385453a7f412a760/nft?chain=sepolia&format=decimal&media_items=false");
+    xhr.open("GET", "https://deep-index.moralis.io/api/v2/"+walletAddress+"/nft?chain=sepolia&format=decimal&media_items=false");
     xhr.setRequestHeader("accept", "application/json");
     xhr.setRequestHeader("X-API-Key", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJub25jZSI6ImQ3NWMwZWNkLTA0NWQtNGU0Yy05NmY2LTg0NTljZmZkZjJmNiIsIm9yZ0lkIjoiMzQ2MzI1IiwidXNlcklkIjoiMzU2MDA1IiwidHlwZUlkIjoiYjkxZDk0YTYtMDdmZS00NjgwLTlkOWItZmJlNTEyZjliOGYwIiwidHlwZSI6IlBST0pFQ1QiLCJpYXQiOjE2ODgyODI0NjUsImV4cCI6NDg0NDA0MjQ2NX0.ZeKB90GPvHv947vltLHWtNnAu_ubOoKFIMwpt6fg5k4");
     xhr.onload = function () {
@@ -123,7 +123,7 @@ const AssetTransfer = ({ isConnected }) => {
             const productTokenId = parseInt(convertToDigitString(p.token_id, 24).slice(0, 4));
             console.log(productTokenId);
             const collectionProductRef = collection(db, "products");
-            const productQuery = query(collectionProductRef, where("productTokenId", "==", productTokenId));
+            const productQuery = query(collectionProductRef, where("productTokenId", "==", productTokenId), where("companyAddress", "==", walletAddress));
             const querySnapshot = await getDocs(productQuery);
             console.log(querySnapshot);
             querySnapshot.forEach((doc) => {
