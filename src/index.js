@@ -39,6 +39,7 @@ const Navigation = () => {
       }
     } else {
       console.error('Please install Metamask');
+      alert('Please install Metamask or any other wallet browser extension');
     }
 
   };
@@ -127,11 +128,11 @@ const Navigation = () => {
 
       <Routes>
         <Route path="/" element={<ConnectWallet isConnected={walletConnected} />} />
-        <Route path="/mint-token" element={<MintToken />} />
-        <Route path="/add-client" element={<AddClient />} />
-        <Route path="/register-company" element={<RegisterCompany />} />
-        <Route path="/product-registration" element={<ProductRegistration />} />
-        <Route path="/asset-transfer" element={<AssetTransfer />} />
+        <Route path="/mint-token" element={<MintToken isConnected={walletConnected}/>} />
+        <Route path="/add-client" element={<AddClient isConnected={walletConnected}/>} />
+        <Route path="/register-company" element={<RegisterCompany isConnected={walletConnected}/>} />
+        <Route path="/product-registration" element={<ProductRegistration isConnected={walletConnected}/>} />
+        <Route path="/asset-transfer" element={<AssetTransfer isConnected={walletConnected}/>} />
       </Routes>
     </>
   );

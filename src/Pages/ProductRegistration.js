@@ -1,38 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { TextField, Button, makeStyles } from '@material-ui/core';
+import { TextField, Button, Select, MenuItem, FormControl } from '@material-ui/core';
 import Web3 from 'web3';
 import db from "./firebase";
 import { doc, updateDoc, getDoc, addDoc, collection, arrayUnion } from "firebase/firestore";
-import FormControl from '@material-ui/core/FormControl';
-import Select from '@material-ui/core/Select';
-import MenuItem from '@material-ui/core/MenuItem';
+import useStyles from './style';
+import { useNavigate } from 'react-router-dom';
 
-const useStyles = makeStyles((theme) => ({
-  wrapper: {
-    textAlign: 'center',
-    padding: theme.spacing(4),
-  },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    maxWidth: '400px',
-    margin: '0 auto',
-  },
-  input: {
-    marginBottom: theme.spacing(2),
-  },
-  button: {
-    marginTop: theme.spacing(2),
-  },
-}));
 
-const ProductRegistration = () => {
+const ProductRegistration = ({ isConnected }) => {
   const classes = useStyles();
   const [productName, setProductName] = useState('');
   const [baseQuantity, setBaseQuantity] = useState('');
   const [carbonFootprint, setCarbonFootprint] = useState('');
   const [accountAddresses, setAccountAddresses] = useState([]);
   const [walletAddress, setWalletAddress] = useState('');
+  const navigate = useNavigate();
 
 
   const handleProductNameChange = (event) => {
@@ -68,6 +50,9 @@ const ProductRegistration = () => {
         }
       }
     };
+    if (!isConnected) {
+      navigate("/");
+    }
 
     fetchAccountAddresses();
   }, []);
@@ -77,21 +62,34 @@ const ProductRegistration = () => {
 
     try {
 
-      const me = doc(db, "companies", walletAddress);
+      const docCompanyRef = doc(db, "companies", walletAddress);
+      const docCompanySnap = await getDoc(docCompanyRef);
+      if (!docCompanySnap.exists()) {
+        alert("Company not registered");
+        return;
+      }
+      else {
+        const productTokenId = docCompanySnap.data().productTokenId;
+        await updateDoc(docCompanyRef, {
+          productTokenId: productTokenId + 1,
+        })
 
-      const docRef =  await addDoc(collection(db, "products"), {
-        productName: productName,
-        baseQuantity: baseQuantity,
-        carbonFootprint: carbonFootprint,
-      });
+        const docRef = await addDoc(collection(db, "products"), {
+          productName: productName,
+          baseQuantity: baseQuantity,
+          carbonFootprint: carbonFootprint,
+          productTokenId: productTokenId,
+          companyAddress: walletAddress,
+        });
 
-      await updateDoc(me, {
-        products: arrayUnion(docRef.id),
-      }).then(() => {
-        console.log("Document successfully updated!");
-      }).catch((error) => {
-        console.error("Error updating document: ", error);
-      });
+        await updateDoc(docCompanyRef, {
+          products: arrayUnion(docRef.id),
+        }).then(() => {
+          console.log("Document successfully updated!");
+        }).catch((error) => {
+          console.error("Error updating document: ", error);
+        });
+      }
 
     } catch (e) {
       console.error("Error updating document: ", e);
@@ -126,6 +124,7 @@ const ProductRegistration = () => {
           className={classes.input}
           label="Carbon Footprint"
           value={carbonFootprint}
+          type='number'
           onChange={handleCarbonFootprintChange}
           required
         />

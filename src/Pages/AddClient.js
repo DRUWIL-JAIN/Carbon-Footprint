@@ -1,42 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import Web3 from 'web3';
-import { makeStyles } from '@material-ui/core/styles';
-import TextField from '@material-ui/core/TextField';
-import FormControl from '@material-ui/core/FormControl';
-import Select from '@material-ui/core/Select';
-import MenuItem from '@material-ui/core/MenuItem';
-import Button from '@material-ui/core/Button';
+import { TextField, Button, Select, MenuItem, FormControl } from '@material-ui/core';
 import db from "./firebase";
 import { doc, updateDoc, getDoc, arrayUnion } from "firebase/firestore";
-
-
-const useStyles = makeStyles((theme) => ({
-    wrapper: {
-        textAlign: 'center',
-        padding: theme.spacing(4),
-    },
-    form: {
-        display: 'flex',
-        flexDirection: 'column',
-        maxWidth: '400px',
-        margin: '0 auto',
-    },
-    input: {
-        marginBottom: theme.spacing(2),
-        textAlign: 'left',
-    },
-    button: {
-        marginTop: theme.spacing(2),
-    },
-}));
+import useStyles  from './style';
+import { useNavigate } from 'react-router-dom';
 
 
 
-const AddClient = () => {
+
+const AddClient = ({ isConnected }) => {
     const classes = useStyles();
     const [clientCompanyAddress, setClientCompanyAddress] = useState('');
     const [accountAddresses, setAccountAddresses] = useState([]);
     const [walletAddress, setWalletAddress] = useState('');
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchAccountAddresses = async () => {
@@ -60,6 +38,9 @@ const AddClient = () => {
                 }
             }
         };
+        if(!isConnected) {
+            navigate("/");
+        }
 
         fetchAccountAddresses();
     }, []);
