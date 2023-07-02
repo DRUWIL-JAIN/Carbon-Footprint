@@ -62,12 +62,12 @@ const MintToken = ({ isConnected }) => {
 
         const tokenId = String(docProductSnap.data().productTokenId) + convertToDigitString(docSnap.data().companyTokenId, 6) + convertToDigitString(0, 14);
 
-        // const receipt = await contract.methods
-        //   .mint(walletAddress, tokenId, quantity, '0x00')
-        //   .send({ from: window.ethereum.selectedAddress });
-        // setBlockNumber(receipt.blockNumber);
-        // setTxHash(receipt.transactionHash);
-        // setEtherscanLink(`https://sepolia.etherscan.io/tx/${receipt.transactionHash}`);
+        const receipt = await contract.methods
+          .mint(walletAddress, tokenId, quantity, '0x00')
+          .send({ from: window.ethereum.selectedAddress });
+        setBlockNumber(receipt.blockNumber);
+        setTxHash(receipt.transactionHash);
+        setEtherscanLink(`https://sepolia.etherscan.io/tx/${receipt.transactionHash}`);
 
       }
       else {
