@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Web3 from 'web3';
 import { TextField, Button, Select, MenuItem, FormControl } from '@material-ui/core';
 import db from "./firebase";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { setDoc, doc, getDoc, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { CONTRACT_ADDRESS } from "../constant"
 import useStyles from './style';
 import { useNavigate } from 'react-router-dom';
@@ -34,17 +34,6 @@ const MintToken = ({ isConnected }) => {
   const navigate = useNavigate();
 
 
-  function convertToDigitString(number, digits) {
-    // Convert the number to a string
-    let numberString = String(number);
-
-    // Pad the string with leading zeros if necessary
-    while (numberString.length < digits) {
-      numberString = '0' + numberString;
-    }
-    return numberString;
-  }
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -60,15 +49,40 @@ const MintToken = ({ isConnected }) => {
 
       if (docSnap.exists() && docProductSnap.exists()) {
 
-        const tokenId = String(docProductSnap.data().productTokenId) + convertToDigitString(docSnap.data().companyTokenId, 6) + convertToDigitString(0, 14);
+        const psuedoTokenId = docProductSnap.id + "-" + docSnap.id;
+        console.log("psuedoTokenId", psuedoTokenId);
+        const queryRef = query(collection(db, "PsuedoToRealToken"), where("psuedoTokenId", "==", psuedoTokenId));
+        const querySnap = await getDocs(queryRef);
+        let realTokenId = "";
+        if (querySnap.size > 0) {
+          querySnap.forEach((doc) => {
+            realTokenId = doc.id;
+          });
+        }
+        else{
+          const docDataRef = doc(db, "Data","Token");
+          const docDataSnap = await getDoc(docDataRef);
+         
+          if (docDataSnap.exists()) {
+            realTokenId = docDataSnap.data().currentTokenId + 1;
+            await updateDoc(docDataRef, {
+              currentTokenId: realTokenId
+            });
+            const docPTRRef = doc(db, "PsuedoToRealToken", String(realTokenId));
+            await setDoc(docPTRRef, {
+              psuedoTokenId: psuedoTokenId,
+            })
+          }
 
+        }
+        console.log("realTokenId", realTokenId, "psuedoTokenId", psuedoTokenId);
         const receipt = await contract.methods
-          .mint(walletAddress, tokenId, quantity, '0x00')
-          .send({ from: window.ethereum.selectedAddress });
+        .mint(walletAddress, realTokenId, quantity, '0x00')
+        .send({ from: window.ethereum.selectedAddress });
         setBlockNumber(receipt.blockNumber);
         setTxHash(receipt.transactionHash);
         setEtherscanLink(`https://sepolia.etherscan.io/tx/${receipt.transactionHash}`);
-
+       
       }
       else {
         alert("Company or product not registered");
@@ -79,6 +93,8 @@ const MintToken = ({ isConnected }) => {
   };
 
   const fetchAllProducts = async () => {
+    setAllProducts([]);
+    setProduct("");
     const docRef = doc(db, "companies", walletAddress);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {

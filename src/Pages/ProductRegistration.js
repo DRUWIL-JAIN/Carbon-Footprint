@@ -11,23 +11,12 @@ const ProductRegistration = ({ isConnected }) => {
   const classes = useStyles();
   const [productName, setProductName] = useState('');
   const [baseQuantity, setBaseQuantity] = useState('');
+  const [weight, setWeight] = useState('');
   const [carbonFootprint, setCarbonFootprint] = useState('');
   const [accountAddresses, setAccountAddresses] = useState([]);
   const [walletAddress, setWalletAddress] = useState('');
   const navigate = useNavigate();
 
-
-  const handleProductNameChange = (event) => {
-    setProductName(event.target.value);
-  };
-
-  const handleBaseQuantityChange = (event) => {
-    setBaseQuantity(event.target.value);
-  };
-
-  const handleCarbonFootprintChange = (event) => {
-    setCarbonFootprint(event.target.value);
-  };
   useEffect(() => {
     const fetchAccountAddresses = async () => {
       if (window.ethereum) {
@@ -69,17 +58,14 @@ const ProductRegistration = ({ isConnected }) => {
         return;
       }
       else {
-        const productTokenId = docCompanySnap.data().productTokenId;
-        await updateDoc(docCompanyRef, {
-          productTokenId: productTokenId + 1,
-        })
+        
 
         const docRef = await addDoc(collection(db, "products"), {
           productName: productName,
           baseQuantity: baseQuantity,
           carbonFootprint: carbonFootprint,
-          productTokenId: productTokenId,
           companyAddress: walletAddress,
+          weight: weight,
         });
 
         await updateDoc(docCompanyRef, {
@@ -110,14 +96,23 @@ const ProductRegistration = ({ isConnected }) => {
           className={classes.input}
           label="Product Name"
           value={productName}
-          onChange={handleProductNameChange}
+          onChange={e => setProductName(e.target.value)}
           required
         />
         <TextField
           className={classes.input}
           label="Base Quantity"
           value={baseQuantity}
-          onChange={handleBaseQuantityChange}
+          onChange={e => setBaseQuantity(e.target.value)}
+          required
+        />
+        <TextField
+          className={classes.input}
+          label="Weight in Kgs"
+          value={weight}
+          type='number'
+          step='0.01'
+          onChange={e => setWeight(e.target.value)}
           required
         />
         <TextField
@@ -125,7 +120,8 @@ const ProductRegistration = ({ isConnected }) => {
           label="Carbon Footprint"
           value={carbonFootprint}
           type='number'
-          onChange={handleCarbonFootprintChange}
+          step='0.01'
+          onChange={e => setCarbonFootprint(e.target.value)}
           required
         />
         <FormControl className={classes.input}>

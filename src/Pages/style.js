@@ -8,7 +8,7 @@ const useStyles = makeStyles((theme) => ({
     form: {
       display: 'flex',
       flexDirection: 'column',
-      maxWidth: '400px',
+      maxWidth: '800px',
       margin: '0 auto',
       textAlign: 'left',
     },

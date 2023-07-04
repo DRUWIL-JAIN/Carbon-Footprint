@@ -9,6 +9,8 @@ import AddClient from './Pages/AddClient';
 import RegisterCompany from './Pages/RegisterCompany';
 import ProductRegistration from './Pages/ProductRegistration';
 import AssetTransfer from './Pages/AssetTransfer';
+import TransportationRegistration from './Pages/TransportationRegistration';
+import MixNCreate from './Pages/MixNCreateNFT';
 
 const useStyles = makeStyles((theme) => ({
   navContainer: {
@@ -107,10 +109,26 @@ const Navigation = () => {
               <Button
                 color="inherit"
                 component={Link}
+                to="/transportation-registration"
+                className={classes.link}
+              >
+                Transportation Registration
+              </Button>
+              <Button
+                color="inherit"
+                component={Link}
                 to="/asset-transfer"
                 className={classes.link}
               >
                 Asset Transfer
+              </Button>
+              <Button
+                color="inherit"
+                component={Link}
+                to="/mix-n-create"
+                className={classes.link}
+              >
+                MixNCreate
               </Button>
               <Button color="inherit" className={classes.link} disabled="true">
                 Connected
@@ -133,6 +151,8 @@ const Navigation = () => {
         <Route path="/register-company" element={<RegisterCompany isConnected={walletConnected}/>} />
         <Route path="/product-registration" element={<ProductRegistration isConnected={walletConnected}/>} />
         <Route path="/asset-transfer" element={<AssetTransfer isConnected={walletConnected}/>} />
+        <Route path="/transportation-registration" element={<TransportationRegistration isConnected={walletConnected}/>} />
+        <Route path="/mix-n-create" element={<MixNCreate isConnected={walletConnected}/>} />
       </Routes>
     </>
   );

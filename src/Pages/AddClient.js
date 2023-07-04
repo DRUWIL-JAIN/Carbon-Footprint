@@ -71,6 +71,7 @@ const AddClient = ({ isConnected }) => {
 
         } catch (e) {
             console.error("Error updating document: ", e);
+            alert(e.message);
         }
     };
 

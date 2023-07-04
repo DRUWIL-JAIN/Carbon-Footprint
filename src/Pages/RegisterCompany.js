@@ -3,7 +3,7 @@ import Web3 from 'web3';
 import useStyles from './style';
 import { TextField, Button, Select, MenuItem, FormControl } from '@material-ui/core';
 import db from "./firebase";
-import { doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 import { useNavigate } from 'react-router-dom';
 
 
@@ -41,7 +41,7 @@ const RegisterCompany = ({ isConnected }) => {
             }
         };
 
-        if(!isConnected) {
+        if (!isConnected) {
             navigate("/");
         }
 
@@ -53,39 +53,21 @@ const RegisterCompany = ({ isConnected }) => {
         try {
             const docCompanyRef = doc(db, "companies", walletAddress);
             const docCompanySnap = await getDoc(docCompanyRef);
-            if(docCompanySnap.exists()) {
+            if (docCompanySnap.exists()) {
                 alert("Company already registered");
                 return;
             }
 
-            const docDataRef = doc(db, "Data", "company");
-            const docDataSnap = await getDoc(docDataRef);
-
-            if (docDataSnap.exists()) {
-                console.log("Document data:", docDataSnap.data());
-                const companyTokenId = docDataSnap.data().companyTokenId;
-
-                await updateDoc(docDataRef, {
-                    companyTokenId: companyTokenId + 1,
-                }).then(() => {
-                    console.log("Document successfully written!");
-                }).catch((error) => {
-                    console.error("Error writing document: ", error);
-                });
-
-                await setDoc(docCompanyRef, {
-                    companyScale: companyScale,
-                    companyName: companyName,
-                    companyAddress: companyAddress,
-                    companyType: companyType,
-                    companyTokenId: companyTokenId,
-                    productTokenId: 0,
-                }).then(() => {
-                    console.log("Document successfully written!");
-                }).catch((error) => {
-                    console.error("Error writing document: ", error);
-                });
-            }
+            await setDoc(docCompanyRef, {
+                companyScale: companyScale,
+                companyName: companyName,
+                companyAddress: companyAddress,
+                companyType: companyType,
+            }).then(() => {
+                console.log("Document successfully written!");
+            }).catch((error) => {
+                console.error("Error writing document: ", error);
+            });
 
         } catch (e) {
             console.error("Error adding document: ", e);
