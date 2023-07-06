@@ -6,6 +6,8 @@ import { doc, getDoc, getDocs, query, collection, where, updateDoc, setDoc } fro
 import { CONTRACT_ADDRESS } from "../constant"
 import useStyles from './style';
 import { useNavigate } from 'react-router-dom';
+import { SHA256 } from 'crypto-js';
+
 
 
 
@@ -106,6 +108,15 @@ const AssetTransfer = ({ isConnected }) => {
   const fetchProduct = async () => {
     setProducts([]);
     setProduct(null);
+    setQuantity('');
+    setTransportInvolved([]);
+    setTransportInstance('');
+    setDistanceInstance('');
+    setAdditionalWeight(0);
+
+
+
+
     const xhr = new XMLHttpRequest();
     xhr.open("GET", "https://deep-index.moralis.io/api/v2/" + walletAddress + "/nft?chain=sepolia&format=decimal&media_items=false");
     xhr.setRequestHeader("accept", "application/json");
@@ -119,46 +130,35 @@ const AssetTransfer = ({ isConnected }) => {
           if ((p.token_address).toString() == CONTRACT_ADDRESS.toLowerCase()) {
             console.log("Product found");
             productFound = true;
-            const docRef = doc(db, "PsuedoToRealToken", p.token_id);
+            const realTokenId = p.token_id;
+
+
+            const docRef = doc(db, "PsuedoToRealToken", realTokenId);
             const document = await getDoc(docRef);
             if (document.exists()) {
               console.log(document.id, " => ", document.data());
               const psuedoTokenId = document.data().psuedoTokenId;
               console.log(psuedoTokenId);
-              let supplyChain = psuedoTokenId.split("-");
-              console.log(supplyChain);
-              supplyChain.pop();
-              let trace = "";
-              supplyChain = supplyChain.reverse();
-              console.log(supplyChain);
 
-              let productDetails = {};
-              while (supplyChain.length > 0) {
-                console.log(supplyChain);
-                const supplyChainElement = supplyChain.pop();
-
-                if (supplyChainElement.includes("0x")) {
-                  console.log("Company", supplyChainElement);
-                  const docRef = doc(db, "companies", supplyChainElement);
-                  const docSnap = await getDoc(docRef);
-                  if (docSnap.exists()) {
-                    console.log("Document data:", docSnap.data());
-                    trace = trace + docSnap.data().companyType + " : " + docSnap.data().companyName + " -> ";
-                  }
-                }
-                else {
-                  console.log("Product", supplyChainElement);
-                  const docRef = doc(db, "products", supplyChainElement);
-                  const docSnap = await getDoc(docRef);
-                  if (docSnap.exists()) {
-                    console.log("Document data:", docSnap.data());
-                    trace = trace + "Product: " + docSnap.data().productName + "(" + docSnap.data().baseQuantity + ") -> ";
-                    productDetails = docSnap.data();
-                  }
-                }
+              const psuedoTokenIdJson = JSON.parse(psuedoTokenId);
+              const docProductRef = doc(db, "products", psuedoTokenIdJson.P);
+              const docProductSnap = await getDoc(docProductRef);
+              let pDetail = null;
+              if (docProductSnap.exists()) {
+                console.log("Document data:", docProductSnap.data());
+                pDetail = docProductSnap.data();
               }
-              console.log(trace);
-              setProducts((products) => [...products, { ...p, trace: trace, psuedoTokenId: psuedoTokenId, ...productDetails }]);
+              const docManufacturerRef = doc(db, "companies", psuedoTokenIdJson.M);
+              const docManufacturerSnap = await getDoc(docManufacturerRef);
+              let mDetail = null;
+              if (docManufacturerSnap.exists()) {
+                console.log("Document data:", docManufacturerSnap.data());
+                mDetail = docManufacturerSnap.data();
+              }
+              if(pDetail && mDetail){
+                const trace = pDetail.productName + " (Manufacturer: " + mDetail.companyName+")";
+                setProducts((products) => [...products, { ...p, trace: trace, psuedoTokenIdJson: psuedoTokenIdJson, pDetail: pDetail, mDetail: mDetail }]);
+              }
             }
 
 
@@ -176,16 +176,36 @@ const AssetTransfer = ({ isConnected }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if(transportInvolved.length == 0){
+      alert("Please select atleast one transport company");
+      return;
+    }
 
     try {
-      const psuedoTokenId = product.psuedoTokenId + "-" + client.id;
-      const docRef = doc(db, "PsuedoToRealToken", psuedoTokenId);
-      const docSnap = await getDoc(docRef);
+
+      console.log("Product", product.psuedoTokenIdJson);
+      let psuedoTokenIdJson = product.psuedoTokenIdJson;
+      if(client.companyType == "Logistics"){
+        if(!psuedoTokenIdJson.L){
+        psuedoTokenIdJson.L = [walletAddress];
+        }
+        else{
+          psuedoTokenIdJson.L.push(walletAddress);
+        }
+      }
+      console.log("Product", psuedoTokenIdJson);
+
+      const psuedoTokenId = JSON.stringify(psuedoTokenIdJson);
+
+      const hash = SHA256(psuedoTokenId).toString();
+      const queryRef = query(collection(db, "PsuedoToRealToken"), where("hash", "==", hash));
+      const querySnap = await getDocs(queryRef);
       let realTokenId = 0;
-      if (docSnap.exists()) {
-        console.log("Document data:", docSnap.data());
-        realTokenId = docSnap.data().realTokenId;
-        console.log(walletAddress, client.id, product.token_id, realTokenId, quantity);
+      if (querySnap.size > 0) {
+        querySnap.forEach((doc) => {
+          console.log(doc.id, " => ", doc.data());
+          realTokenId = doc.id;
+        });
       }
       else {
         console.log("No such document!");
@@ -197,13 +217,13 @@ const AssetTransfer = ({ isConnected }) => {
           await updateDoc(docRef, {
             currentTokenId: realTokenId
           });
-          await setDoc(doc(db, "PsuedoToRealToken", psuedoTokenId), {
-            realTokenId: realTokenId,
+          await setDoc(doc(db, "PsuedoToRealToken", String(realTokenId)), {
+            psuedoTokenId: psuedoTokenId,
+            hash: hash,
           });
-          console.log(walletAddress, client.id, product.token_id, realTokenId, quantity);
         }
       }
-
+      console.log(walletAddress, client.id, product.token_id, realTokenId, quantity);
       const receipt = await contract.methods
         .burnNmint(walletAddress, client.id, product.token_id, String(realTokenId), quantity)
         .send({ from: window.ethereum.selectedAddress });
@@ -332,7 +352,7 @@ const AssetTransfer = ({ isConnected }) => {
                       >
                         <MenuItem value='' disabled>Select Product</MenuItem>
                         {products.map((p, index) => (
-                          <MenuItem value={p} key={index}>{p.trace.slice(0, p.trace.length - 3)}</MenuItem>
+                          <MenuItem value={p} key={index}>{p.trace}</MenuItem>
                         ))}
                       </Select>
                     </FormControl>
@@ -365,7 +385,7 @@ const AssetTransfer = ({ isConnected }) => {
                     {me && me.companyType === 'Logistics' && product && (
                       <>
                         <TextField
-                          label={"Additional Weight (By manufacturer: " + product.weight + ")"}
+                          label={"Additional Weight (By manufacturer: " + product.pDetail.weight + " kg)"}
                           value={additionalWeight}
                           onChange={(e) => setAdditionalWeight(e.target.value)}
                           fullWidth
@@ -391,9 +411,8 @@ const AssetTransfer = ({ isConnected }) => {
                             value={transportInstance}
                             onChange={(e) => setTransportInstance(e.target.value)}
                             displayEmpty
-                            required
                           >
-                            <MenuItem value='' disabled>Select Product</MenuItem>
+                            <MenuItem value='' disabled>Select Transportation</MenuItem>
                             {transportation.map((p, index) => (
                               <MenuItem value={p} key={index}>{p.vehicleName}</MenuItem>
                             ))}
@@ -405,7 +424,6 @@ const AssetTransfer = ({ isConnected }) => {
                           onChange={(e) => setDistanceInstance(e.target.value)}
                           fullWidth
                           className={classes.input}
-                          required
                           type="number"
                           InputProps={{
                             inputProps: {

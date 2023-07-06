@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import Web3 from 'web3';
 import ReactDOM from "react-dom/client";
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import { AppBar, Toolbar, Typography, Button, makeStyles } from '@material-ui/core';

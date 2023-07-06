@@ -6,6 +6,8 @@ import { setDoc, doc, getDoc, updateDoc, collection, query, where, getDocs } fro
 import { CONTRACT_ADDRESS } from "../constant"
 import useStyles from './style';
 import { useNavigate } from 'react-router-dom';
+import { SHA256 } from 'crypto-js';
+
 
 
 const artifacts = require('../MyToken.json');
@@ -48,10 +50,15 @@ const MintToken = ({ isConnected }) => {
       const docProductSnap = await getDoc(docProductRef);
 
       if (docSnap.exists() && docProductSnap.exists()) {
-
-        const psuedoTokenId = docProductSnap.id + "-" + docSnap.id;
+        const me = docSnap;
+        const psuedoTokenIdJson = {
+          P: docProductSnap.id,
+          M: me.id
+        }
+        const psuedoTokenId = JSON.stringify(psuedoTokenIdJson);
+        const hash = SHA256(psuedoTokenId).toString();
         console.log("psuedoTokenId", psuedoTokenId);
-        const queryRef = query(collection(db, "PsuedoToRealToken"), where("psuedoTokenId", "==", psuedoTokenId));
+        const queryRef = query(collection(db, "PsuedoToRealToken"), where("hash", "==", hash));
         const querySnap = await getDocs(queryRef);
         let realTokenId = "";
         if (querySnap.size > 0) {
@@ -71,6 +78,7 @@ const MintToken = ({ isConnected }) => {
             const docPTRRef = doc(db, "PsuedoToRealToken", String(realTokenId));
             await setDoc(docPTRRef, {
               psuedoTokenId: psuedoTokenId,
+              hash: hash
             })
           }
 

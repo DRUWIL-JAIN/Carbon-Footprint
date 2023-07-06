@@ -6,7 +6,7 @@ import { doc, getDoc, getDocs, query, collection, where, updateDoc, setDoc } fro
 import { CONTRACT_ADDRESS } from "../constant"
 import useStyles from './style';
 import { useNavigate } from 'react-router-dom';
-
+import { SHA256 } from 'crypto-js';
 
 
 
@@ -37,6 +37,8 @@ const MixNCreate = ({ isConnected }) => {
     const [product, setProduct] = useState(null);
     const [burnNFTs, setBurnNFTs] = useState([]);
     const [mintQuantity, setMintQuantity] = useState('');
+    const [newMyProduct, setNewMyProduct] = useState('');
+    const [allMyProducts, setAllMyProducts] = useState([]);
 
 
 
@@ -72,6 +74,10 @@ const MixNCreate = ({ isConnected }) => {
         setBurnNFTs([]);
         setProducts([]);
         setProduct(null);
+        setNewMyProduct('');
+        setAllMyProducts([]);
+        setMintQuantity('');
+
         const xhr = new XMLHttpRequest();
         xhr.open("GET", "https://deep-index.moralis.io/api/v2/" + walletAddress + "/nft?chain=sepolia&format=decimal&media_items=false");
         xhr.setRequestHeader("accept", "application/json");
@@ -85,48 +91,36 @@ const MixNCreate = ({ isConnected }) => {
                     if ((p.token_address).toString() == CONTRACT_ADDRESS.toLowerCase()) {
                         console.log("Product found");
                         productFound = true;
-                        const docRef = doc(db, "PsuedoToRealToken", p.token_id);
+                        const realTokenId = p.token_id;
+
+
+                        const docRef = doc(db, "PsuedoToRealToken", realTokenId);
                         const document = await getDoc(docRef);
                         if (document.exists()) {
                             console.log(document.id, " => ", document.data());
                             const psuedoTokenId = document.data().psuedoTokenId;
                             console.log(psuedoTokenId);
-                            let supplyChain = psuedoTokenId.split("-");
-                            console.log(supplyChain);
-                            supplyChain.pop();
-                            let trace = "";
-                            supplyChain = supplyChain.reverse();
-                            console.log(supplyChain);
 
-                            let productDetails = {};
-                            while (supplyChain.length > 0) {
-                                console.log(supplyChain);
-                                const supplyChainElement = supplyChain.pop();
-
-                                if (supplyChainElement.includes("0x")) {
-                                    console.log("Company", supplyChainElement);
-                                    const docRef = doc(db, "companies", supplyChainElement);
-                                    const docSnap = await getDoc(docRef);
-                                    if (docSnap.exists()) {
-                                        console.log("Document data:", docSnap.data());
-                                        trace = trace + docSnap.data().companyType + " : " + docSnap.data().companyName + " -> ";
-                                    }
-                                }
-                                else {
-                                    console.log("Product", supplyChainElement);
-                                    const docRef = doc(db, "products", supplyChainElement);
-                                    const docSnap = await getDoc(docRef);
-                                    if (docSnap.exists()) {
-                                        console.log("Document data:", docSnap.data());
-                                        trace = trace + "Product: " + docSnap.data().productName + "(" + docSnap.data().baseQuantity + ") -> ";
-                                        productDetails = docSnap.data();
-                                    }
-                                }
+                            const psuedoTokenIdJson = JSON.parse(psuedoTokenId);
+                            const docProductRef = doc(db, "products", psuedoTokenIdJson.P);
+                            const docProductSnap = await getDoc(docProductRef);
+                            let pDetail = null;
+                            if (docProductSnap.exists()) {
+                                console.log("Document data:", docProductSnap.data());
+                                pDetail = docProductSnap.data();
                             }
-                            console.log(trace);
-                            setProducts((products) => [...products, { ...p, trace: trace, psuedoTokenId: psuedoTokenId, ...productDetails }]);
+                            const docManufacturerRef = doc(db, "companies", psuedoTokenIdJson.M);
+                            const docManufacturerSnap = await getDoc(docManufacturerRef);
+                            let mDetail = null;
+                            if (docManufacturerSnap.exists()) {
+                                console.log("Document data:", docManufacturerSnap.data());
+                                mDetail = docManufacturerSnap.data();
+                            }
+                            if (pDetail && mDetail) {
+                                const trace = pDetail.productName + " (Manufacturer: " + mDetail.companyName + ")";
+                                setProducts((products) => [...products, { ...p, trace: trace, psuedoTokenIdJson: psuedoTokenIdJson, pDetail: pDetail, mDetail: mDetail }]);
+                            }
                         }
-
 
                     }
                 })
@@ -147,23 +141,34 @@ const MixNCreate = ({ isConnected }) => {
             return;
         }
         else {
-            let psuedoTokenIds = [];
 
-            let burnNFTIds = [];
-            let burnNFTAmounts = [];
+            let psuedoTokenIdJson = {};
+            psuedoTokenIdJson.P = newMyProduct;
+            psuedoTokenIdJson.M = walletAddress;
 
-            burnNFTs.map((b) => {
-                psuedoTokenIds.push(b.psuedoTokenId);
+            const burnNFTIds = [];
+            const burnNFTAmounts = [];
+
+            for(const b of burnNFTs){
                 burnNFTIds.push(b.token_id);
                 burnNFTAmounts.push(b.quantity);
-            })
-            let newPsuedoTokenId = psuedoTokenIds.join("~");
-            console.log(psuedoTokenIds);
+                if(psuedoTokenIdJson.S)
+                {
+                    psuedoTokenIdJson.S.push(b.token_id);
+                }
+                else{
+                    psuedoTokenIdJson.S = [b.token_id];
+                }
+            }
+
+            const newPsuedoTokenId = JSON.stringify(psuedoTokenIdJson);
+            const hash = SHA256(newPsuedoTokenId).toString();
+
             console.log(newPsuedoTokenId);
 
             try {
 
-                const queryRef = query(collection(db, "PsuedoToRealToken"), where("psuedoTokenId", "==", newPsuedoTokenId));
+                const queryRef = query(collection(db, "PsuedoToRealToken"), where("hash", "==", hash));
                 const querySnapshot = await getDocs(queryRef);
                 let realTokenId = 0;
 
@@ -187,13 +192,14 @@ const MixNCreate = ({ isConnected }) => {
                         });
                         await setDoc(doc(db, "PsuedoToRealToken", String(realTokenId)), {
                             psuedoTokenId: newPsuedoTokenId,
+                            hash: hash
                         });
-                        console.log(walletAddress, walletAddress, newPsuedoTokenId, realTokenId);
+                        
                     }
                 }
-
+                console.log(walletAddress, walletAddress, burnNFTIds, String(realTokenId), burnNFTAmounts, mintQuantity);
                 const receipt = await contract.methods
-                    .burnNmintBatch(walletAddress, walletAddress, burnNFTIds, String(realTokenId), burnNFTAmounts, 10)
+                    .burnNmintBatch(walletAddress, walletAddress, burnNFTIds, String(realTokenId), burnNFTAmounts, mintQuantity)
                     .send({ from: window.ethereum.selectedAddress });
                 setBlockNumber(receipt.blockNumber);
                 setTxHash(receipt.transactionHash);
@@ -230,6 +236,37 @@ const MixNCreate = ({ isConnected }) => {
         setProduct(null);
     }
 
+    const fetchAllMyProducts = async () => {
+        setAllMyProducts([]);
+        setProduct(null);
+        setQuantity('');
+        setNewMyProduct('');
+        setMintQuantity('');
+        const docRef = doc(db, "companies", walletAddress);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            console.log("Document data:", docSnap.data());
+            if (docSnap.data().products) {
+
+                docSnap.data().products.map(async (p) => {
+                    const docRef = doc(db, "products", p);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        console.log("Document data:", docSnap.data());
+                        setAllMyProducts((allMyProducts) => [...allMyProducts, { ...docSnap.data(), id: p }]);
+                    }
+                })
+            }
+            else {
+                alert("No products registered for this company");
+            }
+
+        } else {
+            // doc.data() will be undefined in this case
+            console.log("No such document!");
+        }
+    }
+
     return (
         <div className={classes.wrapper}>
             <h1>Mix & Create</h1>
@@ -248,8 +285,6 @@ const MixNCreate = ({ isConnected }) => {
                     </Select>
                 </FormControl>
                 {walletAddress && (
-
-
                     <>
                         <Button
                             className={classes.button}
@@ -265,8 +300,7 @@ const MixNCreate = ({ isConnected }) => {
                                 <ul>
                                     {burnNFTs.map((item, index) => (
                                         <li key={index}>
-                                            <span>Name: {item.productName}</span>
-                                            <span>Age: {item.quantity}</span>
+                                            <span>{item.pDetail.productName} (Qty: {item.quantity}, Manufacturer: {item.mDetail.companyName})</span>
                                         </li>
                                     ))}
                                 </ul>
@@ -281,11 +315,10 @@ const MixNCreate = ({ isConnected }) => {
                                         value={product ? product : ''}
                                         onChange={(e) => setProduct(e.target.value)}
                                         displayEmpty
-                                        required
                                     >
                                         <MenuItem value='' disabled>Select Product</MenuItem>
                                         {products.map((p, index) => (
-                                            <MenuItem value={p} key={index}>{p.trace.slice(0, p.trace.length - 3)}</MenuItem>
+                                            <MenuItem value={p} key={index}>{p.trace}</MenuItem>
                                         ))}
                                     </Select>
                                 </FormControl>
@@ -296,7 +329,6 @@ const MixNCreate = ({ isConnected }) => {
                                     fullWidth
                                     className={classes.input}
                                     disabled
-                                    required
                                 />
                                 {product && (
                                     <>
@@ -332,25 +364,55 @@ const MixNCreate = ({ isConnected }) => {
                         )}
                         {burnNFTs.length > 1 && (
                             <>
-                                <TextField
-                                    label="New NFT Amount"
-                                    value={mintQuantity}
-                                    onChange={(e) => setMintQuantity(e.target.value)}
-                                    fullWidth
-                                    className={classes.input}
-                                    required
-                                    type="number"
-                                    InputProps={{
-                                        inputProps: {
-                                            min: 0
-                                        }
-                                    }}
-                                />
+                                <Button
+                                    className={classes.button}
+                                    variant="contained"
+                                    color="primary"
+                                    onClick={fetchAllMyProducts}
+                                >
+                                    Fetch My Products
+                                </Button>
+                                {allMyProducts.length > 0 && (
+                                    <>
+                                        <h3>Mint new product</h3>
+                                        <FormControl className={classes.input}>
+                                            <Select
+                                                value={newMyProduct}
+                                                onChange={(e) => setNewMyProduct(e.target.value)}
+                                                displayEmpty
+                                                required
+                                            >
+                                                <MenuItem value='' disabled>Select Product</MenuItem>
+                                                {allMyProducts.map((p, index) => (
+                                                    <MenuItem value={p.id} key={index}>{p.productName} (Qty: {p.baseQuantity}, Carbon footprint: {p.carbonFootprint})</MenuItem>
+                                                ))}
+                                            </Select>
+                                        </FormControl>
+                                        <TextField
+                                            label="New NFT Amount"
+                                            value={mintQuantity}
+                                            onChange={(e) => setMintQuantity(e.target.value)}
+                                            fullWidth
+                                            className={classes.input}
+                                            required
+                                            type="number"
+                                            InputProps={{
+                                                inputProps: {
+                                                    min: 0
+                                                }
+                                            }}
+                                        />
+                                    </>
+                                )}
                             </>
                         )}
+
+
+
                     </>
 
                 )}
+
                 <Button
                     className={classes.button}
                     variant="contained"
