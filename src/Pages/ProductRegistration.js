@@ -1,21 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { TextField, Button, Select, MenuItem, FormControl } from '@material-ui/core';
+import { TextField, Button, Select, MenuItem, FormControl, Checkbox, FormControlLabel, Input } from '@material-ui/core';
 import Web3 from 'web3';
-import db from "./firebase";
+import { db, storage } from "./firebase";
 import { doc, updateDoc, getDoc, addDoc, collection, arrayUnion } from "firebase/firestore";
 import useStyles from './style';
 import { useNavigate } from 'react-router-dom';
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 
 const ProductRegistration = ({ isConnected }) => {
   const classes = useStyles();
   const [productName, setProductName] = useState('');
-  const [baseQuantity, setBaseQuantity] = useState('');
+  const [description, setDescription] = useState('');
   const [weight, setWeight] = useState('');
   const [carbonFootprint, setCarbonFootprint] = useState('');
   const [accountAddresses, setAccountAddresses] = useState([]);
   const [walletAddress, setWalletAddress] = useState('');
+  const [isRawMaterial, setIsRawMaterial] = useState(false);
+  const [manufacturingAddress, setManufacturingAddress] = useState('');
   const navigate = useNavigate();
+  const [image, setImage] = useState(null);
+
 
   useEffect(() => {
     const fetchAccountAddresses = async () => {
@@ -46,6 +51,12 @@ const ProductRegistration = ({ isConnected }) => {
     fetchAccountAddresses();
   }, []);
 
+  const handleImageChange = (event) => {
+    if (event.target.files[0]) {
+      setImage(event.target.files[0]);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -58,15 +69,36 @@ const ProductRegistration = ({ isConnected }) => {
         return;
       }
       else {
-        
+
 
         const docRef = await addDoc(collection(db, "products"), {
           productName: productName,
-          baseQuantity: baseQuantity,
+          description: description,
           carbonFootprint: carbonFootprint,
           companyAddress: walletAddress,
           weight: weight,
+          isRawMaterial: isRawMaterial,
+          manufacturingAddress: manufacturingAddress,
         });
+
+        if (image) {
+          const storageRef = ref(storage, 'productImage/' + docRef.id + '.png');
+
+          // 'file' comes from the Blob or File API
+          const snapShot = await uploadBytes(storageRef, image);
+          console.log(snapShot)
+          const url = await getDownloadURL(snapShot.ref);
+          console.log(url);
+          await updateDoc(docRef, {
+            productImage: url,
+          }).then(() => {
+            console.log("Document successfully updated!");
+          }
+          ).catch((error) => {
+            console.error("Error updating document: ", error);
+          }
+          );
+        }
 
         await updateDoc(docCompanyRef, {
           products: arrayUnion(docRef.id),
@@ -84,8 +116,13 @@ const ProductRegistration = ({ isConnected }) => {
 
     // Reset the form
     setProductName('');
-    setBaseQuantity('');
+    setDescription('');
     setCarbonFootprint('');
+    setWeight('');
+    setWalletAddress('');
+    setManufacturingAddress('');
+    setImage(null);
+    
   };
 
   return (
@@ -99,11 +136,22 @@ const ProductRegistration = ({ isConnected }) => {
           onChange={e => setProductName(e.target.value)}
           required
         />
+        <Input type="file" onChange={handleImageChange} />
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={isRawMaterial}
+              onChange={(e) => setIsRawMaterial(e.target.checked)}
+              color="primary"
+            />
+          }
+          label="Is Raw Material"
+        />
         <TextField
           className={classes.input}
-          label="Base Quantity"
-          value={baseQuantity}
-          onChange={e => setBaseQuantity(e.target.value)}
+          label="Description"
+          value={description}
+          onChange={e => setDescription(e.target.value)}
           required
         />
         <TextField
@@ -122,6 +170,13 @@ const ProductRegistration = ({ isConnected }) => {
           type='number'
           step='0.01'
           onChange={e => setCarbonFootprint(e.target.value)}
+          required
+        />
+        <TextField
+          className={classes.input}
+          label="Manufacturing Address"
+          value={manufacturingAddress}
+          onChange={e => setManufacturingAddress(e.target.value)}
           required
         />
         <FormControl className={classes.input}>

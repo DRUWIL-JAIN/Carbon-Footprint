@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Web3 from 'web3';
 import { TextField, Button, Select, MenuItem, FormControl } from '@material-ui/core';
-import db from "./firebase";
+import {db} from "./firebase";
 import { doc, updateDoc, getDoc, arrayUnion } from "firebase/firestore";
 import useStyles  from './style';
 import { useNavigate } from 'react-router-dom';

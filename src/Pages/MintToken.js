@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import Web3 from 'web3';
 import { TextField, Button, Select, MenuItem, FormControl } from '@material-ui/core';
-import db from "./firebase";
+import { db } from "./firebase";
 import { setDoc, doc, getDoc, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { CONTRACT_ADDRESS } from "../constant"
 import useStyles from './style';
 import { useNavigate } from 'react-router-dom';
 import { SHA256 } from 'crypto-js';
+import { uploadJson } from "./upload.mjs"
 
 
 
@@ -30,9 +31,12 @@ const MintToken = ({ isConnected }) => {
   const [txHash, setTxHash] = useState('');
   const [accountAddresses, setAccountAddresses] = useState([]);
   const [walletAddress, setWalletAddress] = useState('');
-  const [product, setProduct] = useState('');
+  const [product, setProduct] = useState(null);
   const [allProducts, setAllProducts] = useState([]);
   const [quantity, setQuantity] = useState('');
+  const [cid, setCid] = useState('');
+  const [me, setMe] = useState(null);
+
   const navigate = useNavigate();
 
 
@@ -41,19 +45,15 @@ const MintToken = ({ isConnected }) => {
 
     try {
 
-      //get the token id from data collection
-      const docCompanyRef = doc(db, "companies", walletAddress);
-      const docSnap = await getDoc(docCompanyRef);
 
 
-      const docProductRef = doc(db, "products", product);
+      const docProductRef = doc(db, "products", product.id);
       const docProductSnap = await getDoc(docProductRef);
 
-      if (docSnap.exists() && docProductSnap.exists()) {
-        const me = docSnap;
+      if (docProductSnap.exists()) {
         const psuedoTokenIdJson = {
           P: docProductSnap.id,
-          M: me.id
+          M: walletAddress
         }
         const psuedoTokenId = JSON.stringify(psuedoTokenIdJson);
         const hash = SHA256(psuedoTokenId).toString();
@@ -64,33 +64,76 @@ const MintToken = ({ isConnected }) => {
         if (querySnap.size > 0) {
           querySnap.forEach((doc) => {
             realTokenId = doc.id;
+            setCid(doc.data().cid);
           });
+          console.log("realTokenId", realTokenId, "psuedoTokenId", psuedoTokenId);
+          const receipt = await contract.methods
+            .mint(walletAddress, realTokenId, quantity, '0x00')
+            .send({ from: window.ethereum.selectedAddress });
+          setBlockNumber(receipt.blockNumber);
+          setTxHash(receipt.transactionHash);
+          setEtherscanLink(`https://sepolia.etherscan.io/tx/${receipt.transactionHash}`);
         }
-        else{
-          const docDataRef = doc(db, "Data","Token");
+        else {
+          const docDataRef = doc(db, "Data", "Token");
           const docDataSnap = await getDoc(docDataRef);
-         
+
           if (docDataSnap.exists()) {
             realTokenId = docDataSnap.data().currentTokenId + 1;
+            const receipt = await contract.methods
+              .mint(walletAddress, realTokenId, quantity, '0x00')
+              .send({ from: window.ethereum.selectedAddress });
+            setBlockNumber(receipt.blockNumber);
+            setTxHash(receipt.transactionHash);
+            setEtherscanLink(`https://sepolia.etherscan.io/tx/${receipt.transactionHash}`);
+
+
+
+            const nftJson = {
+              product: product.id,
+              manufacturer: walletAddress,
+            };
+            nftJson.totalCarbon = parseFloat(product.carbonFootprint);
+            nftJson.productDetails = {
+              productName: product.productName,
+              description: product.description,
+              isRawMaterial: product.isRawMaterial,
+              weight: product.weight,
+              carbonFootPrint: parseFloat(product.carbonFootprint),
+              manufacturingAddress: product.manufacturingAddress,
+              productImage: product.productImage,
+            };
+            nftJson.manufacturerDetails = {
+              companyName: me.companyName,
+              companyAddress: me.companyAddress,
+              companyZipCode: me.companyZipCode,
+              companyWebsite: me.companyWebsite,
+              companyEmail: me.companyEmail,
+              companyPhone: me.companyPhone,
+              companyScale: me.companyScale,
+              companyLogo: me.companyLogo,
+            };
+            const nftJsonString = JSON.stringify(nftJson);
+            console.log("nftJsonString", nftJson);
+            const CID = await uploadJson(nftJsonString);
+            setCid(CID);
+
+
             await updateDoc(docDataRef, {
               currentTokenId: realTokenId
             });
             const docPTRRef = doc(db, "PsuedoToRealToken", String(realTokenId));
             await setDoc(docPTRRef, {
               psuedoTokenId: psuedoTokenId,
-              hash: hash
+              hash: hash,
+              cid: CID
             })
           }
 
         }
-        console.log("realTokenId", realTokenId, "psuedoTokenId", psuedoTokenId);
-        const receipt = await contract.methods
-        .mint(walletAddress, realTokenId, quantity, '0x00')
-        .send({ from: window.ethereum.selectedAddress });
-        setBlockNumber(receipt.blockNumber);
-        setTxHash(receipt.transactionHash);
-        setEtherscanLink(`https://sepolia.etherscan.io/tx/${receipt.transactionHash}`);
-       
+
+
+
       }
       else {
         alert("Company or product not registered");
@@ -102,26 +145,34 @@ const MintToken = ({ isConnected }) => {
 
   const fetchAllProducts = async () => {
     setAllProducts([]);
-    setProduct("");
+    setProduct(null);
     const docRef = doc(db, "companies", walletAddress);
     const docSnap = await getDoc(docRef);
+    let isProductAvailable = false;
     if (docSnap.exists()) {
       console.log("Document data:", docSnap.data());
       if (docSnap.data().products) {
 
+        await Promise.all(
         docSnap.data().products.map(async (p) => {
           const docRef = doc(db, "products", p);
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
-            console.log("Document data:", docSnap.data());
-            setAllProducts((allProducts) => [...allProducts, { ...docSnap.data(), id: p }]);
+            if (docSnap.data().isRawMaterial) {
+              isProductAvailable = 1;
+              console.log("Document data:", docSnap.data());
+              isProductAvailable = true;
+              setAllProducts((allProducts) => [...allProducts, { ...docSnap.data(), id: p }]);
+            }
           }
-        })
+        }));
+        if (!isProductAvailable) {
+          alert("No products registered for this company");
+        }
       }
       else {
         alert("No products registered for this company");
       }
-
     } else {
       // doc.data() will be undefined in this case
       console.log("No such document!");
@@ -161,6 +212,18 @@ const MintToken = ({ isConnected }) => {
     fetchAccountAddresses();
   });
 
+  const handleMe = async (address) => {
+    setWalletAddress(address);
+    const docRef = doc(db, "companies", address);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      console.log("Document data:", docSnap.data());
+      setMe(docSnap.data());
+    } else {
+      alert("Company not registered");
+    }
+  }
+
 
 
   return (
@@ -170,7 +233,7 @@ const MintToken = ({ isConnected }) => {
         <FormControl className={classes.input}>
           <Select
             value={walletAddress}
-            onChange={(e) => setWalletAddress(e.target.value)}
+            onChange={(e) => handleMe(e.target.value)}
             displayEmpty
             required
           >
@@ -194,14 +257,14 @@ const MintToken = ({ isConnected }) => {
           <>
             <FormControl className={classes.input}>
               <Select
-                value={product}
+                value={product ? product : ''}
                 onChange={(e) => setProduct(e.target.value)}
                 displayEmpty
                 required
               >
                 <MenuItem value='' disabled>Select Product</MenuItem>
                 {allProducts.map((p, index) => (
-                  <MenuItem value={p.id} key={index}>{p.productName} (Qty: {p.baseQuantity}, Carbon footprint: {p.carbonFootprint})</MenuItem>
+                  <MenuItem value={p} key={index}>{p.productName} (Description: {p.description}, Carbon footprint: {p.carbonFootprint})</MenuItem>
                 ))}
               </Select>
             </FormControl>
@@ -227,10 +290,24 @@ const MintToken = ({ isConnected }) => {
       {blockNumber && (
         <div>
           <div>
-            <span>blockNumber: {blockNumber ? blockNumber : 'Waiting...'}</span>
+            <span>blockNumber: {blockNumber}</span>
           </div>
           <div>
-            <span>txHash: {txHash ? txHash : 'Waiting...'}</span>
+            <span>txHash: {txHash}</span>
+          </div>
+          <div>
+            <span>CID: {cid ? cid : 'Waiting...'}</span>
+          </div>
+          <div>
+            <span>View NFT Metadata: {"https://" + cid + ".ipfs.nftstorage.link"}</span>
+            <Button
+              disabled={!cid}
+              variant="contained"
+              color="primary"
+              onClick={() => handleRedirect("https://" + cid + ".ipfs.nftstorage.link")}
+            >
+              {txHash ? 'Redirect' : 'Waiting...'}
+            </Button>
           </div>
           <div>
             <span>View on Etherscan: {etherscanLink}</span>

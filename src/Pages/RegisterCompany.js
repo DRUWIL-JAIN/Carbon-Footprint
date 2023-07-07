@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import Web3 from 'web3';
 import useStyles from './style';
-import { TextField, Button, Select, MenuItem, FormControl } from '@material-ui/core';
-import db from "./firebase";
+import { TextField, Button, Select, MenuItem, FormControl, Input } from '@material-ui/core';
+import { db, storage } from "./firebase";
 import { doc, setDoc, getDoc } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useNavigate } from 'react-router-dom';
 
 
@@ -16,7 +17,12 @@ const RegisterCompany = ({ isConnected }) => {
     const [walletAddress, setWalletAddress] = useState('');
     const [accountAddresses, setAccountAddresses] = useState([]);
     const [companyType, setCompanyType] = useState('');
+    const [companyZipCode, setCompanyZipCode] = useState('');
+    const [companyWebsite, setCompanyWebsite] = useState('');
+    const [companyEmail, setCompanyEmail] = useState('');
+    const [companyPhone, setCompanyPhone] = useState('');
     const navigate = useNavigate();
+    const [image, setImage] = useState(null);
 
     useEffect(() => {
         const fetchAccountAddresses = async () => {
@@ -48,6 +54,11 @@ const RegisterCompany = ({ isConnected }) => {
         fetchAccountAddresses();
     }, []);
 
+    const handleImageChange = (event) => {
+        if (event.target.files[0]) {
+            setImage(event.target.files[0]);
+        }
+    };
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
@@ -57,17 +68,38 @@ const RegisterCompany = ({ isConnected }) => {
                 alert("Company already registered");
                 return;
             }
+            if (image) {
+                try {
+                    const storageRef = ref(storage, 'companyLogo/' + walletAddress + '.png');
 
-            await setDoc(docCompanyRef, {
-                companyScale: companyScale,
-                companyName: companyName,
-                companyAddress: companyAddress,
-                companyType: companyType,
-            }).then(() => {
-                console.log("Document successfully written!");
-            }).catch((error) => {
-                console.error("Error writing document: ", error);
-            });
+                    // 'file' comes from the Blob or File API
+                    const snapShot = await uploadBytes(storageRef, image);
+                    console.log(snapShot)
+                    const url = await getDownloadURL(snapShot.ref);
+                    console.log(url);
+                    await setDoc(docCompanyRef, {
+                        companyScale: companyScale,
+                        companyName: companyName,
+                        companyAddress: companyAddress,
+                        companyType: companyType,
+                        companyZipCode: companyZipCode,
+                        companyWebsite: companyWebsite,
+                        companyEmail: companyEmail,
+                        companyPhone: companyPhone,
+                        companyLogo: url,
+                    }).then(() => {
+                        console.log("Document successfully written!");
+                    }).catch((error) => {
+                        console.error("Error writing document: ", error);
+                    });
+                } catch (error) {
+                    console.log(error);
+                }
+            }
+
+
+
+
 
         } catch (e) {
             console.error("Error adding document: ", e);
@@ -85,11 +117,40 @@ const RegisterCompany = ({ isConnected }) => {
                     onChange={(e) => setCompanyName(e.target.value)}
                     required
                 />
+                <Input type="file" onChange={handleImageChange} required />
                 <TextField
                     className={classes.input}
                     label="Company Address"
                     value={companyAddress}
                     onChange={(e) => setCompanyAddress(e.target.value)}
+                    required
+                />
+                <TextField
+                    className={classes.input}
+                    label="Company Zip Code"
+                    value={companyZipCode}
+                    onChange={(e) => setCompanyZipCode(e.target.value)}
+                    required
+                />
+                <TextField
+                    className={classes.input}
+                    label="Company Website"
+                    value={companyWebsite}
+                    onChange={(e) => setCompanyWebsite(e.target.value)}
+                    required
+                />
+                <TextField
+                    className={classes.input}
+                    label="Company Email"
+                    value={companyEmail}
+                    onChange={(e) => setCompanyEmail(e.target.value)}
+                    required
+                />
+                <TextField
+                    className={classes.input}
+                    label="Company Phone"
+                    value={companyPhone}
+                    onChange={(e) => setCompanyPhone(e.target.value)}
                     required
                 />
                 <FormControl className={classes.input}>

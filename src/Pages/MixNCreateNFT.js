@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import Web3 from 'web3';
 import { TextField, Button, Select, MenuItem, FormControl } from '@material-ui/core';
-import db from "./firebase";
+import { db } from "./firebase";
 import { doc, getDoc, getDocs, query, collection, where, updateDoc, setDoc } from "firebase/firestore";
 import { CONTRACT_ADDRESS } from "../constant"
 import useStyles from './style';
 import { useNavigate } from 'react-router-dom';
-import { SHA256 } from 'crypto-js';
-
+import { SHA256, algo } from 'crypto-js';
+import { uploadJson } from "./upload.mjs"
 
 
 
@@ -39,6 +39,9 @@ const MixNCreate = ({ isConnected }) => {
     const [mintQuantity, setMintQuantity] = useState('');
     const [newMyProduct, setNewMyProduct] = useState('');
     const [allMyProducts, setAllMyProducts] = useState([]);
+    const [cid, setCid] = useState('');
+    const [me, setMe] = useState(null);
+
 
 
 
@@ -99,6 +102,7 @@ const MixNCreate = ({ isConnected }) => {
                         if (document.exists()) {
                             console.log(document.id, " => ", document.data());
                             const psuedoTokenId = document.data().psuedoTokenId;
+                            const cid = document.data().cid;
                             console.log(psuedoTokenId);
 
                             const psuedoTokenIdJson = JSON.parse(psuedoTokenId);
@@ -118,7 +122,7 @@ const MixNCreate = ({ isConnected }) => {
                             }
                             if (pDetail && mDetail) {
                                 const trace = pDetail.productName + " (Manufacturer: " + mDetail.companyName + ")";
-                                setProducts((products) => [...products, { ...p, trace: trace, psuedoTokenIdJson: psuedoTokenIdJson, pDetail: pDetail, mDetail: mDetail }]);
+                                setProducts((products) => [...products, { ...p, trace: trace, psuedoTokenIdJson: psuedoTokenIdJson, pDetail: pDetail, mDetail: mDetail, cid: cid }]);
                             }
                         }
 
@@ -135,78 +139,189 @@ const MixNCreate = ({ isConnected }) => {
     }
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (burnNFTs.length < 2) {
-            alert("Select atleast two NFT to Mix");
-            return;
+        if (newMyProduct == '' || mintQuantity == '') {
+            alert("Please add your product to mint");
         }
         else {
+            e.preventDefault();
+            if (burnNFTs.length > 0) {
 
-            let psuedoTokenIdJson = {};
-            psuedoTokenIdJson.P = newMyProduct;
-            psuedoTokenIdJson.M = walletAddress;
+                let psuedoTokenIdJson = {};
+                psuedoTokenIdJson.P = newMyProduct.id;
+                psuedoTokenIdJson.M = walletAddress;
+                const burners = [];
 
-            const burnNFTIds = [];
-            const burnNFTAmounts = [];
-
-            for(const b of burnNFTs){
-                burnNFTIds.push(b.token_id);
-                burnNFTAmounts.push(b.quantity);
-                if(psuedoTokenIdJson.S)
-                {
-                    psuedoTokenIdJson.S.push(b.token_id);
-                }
-                else{
-                    psuedoTokenIdJson.S = [b.token_id];
-                }
-            }
-
-            const newPsuedoTokenId = JSON.stringify(psuedoTokenIdJson);
-            const hash = SHA256(newPsuedoTokenId).toString();
-
-            console.log(newPsuedoTokenId);
-
-            try {
-
-                const queryRef = query(collection(db, "PsuedoToRealToken"), where("hash", "==", hash));
-                const querySnapshot = await getDocs(queryRef);
-                let realTokenId = 0;
-
-                if (querySnapshot.size > 0) {
-
-                    for (const doc of querySnapshot.docs) {
-                        console.log(doc.id, " => ", doc.data());
-                        realTokenId = doc.id;
-                        console.log(realTokenId);
+                for (const b of burnNFTs) {
+                    burners.push({
+                        id: b.token_id,
+                        amount: b.quantity,
+                        cid: b.cid
+                    })
+                    if (psuedoTokenIdJson.S) {
+                        psuedoTokenIdJson.S.push({ id: b.token_id, qt: parseFloat(b.quantity) / parseFloat(mintQuantity) });
+                    }
+                    else {
+                        psuedoTokenIdJson.S = [{ id: b.token_id, qt: parseFloat(b.quantity) / parseFloat(mintQuantity) }];
                     }
                 }
-                else {
-                    console.log("No such document!");
-                    const docRef = doc(db, "Data", "Token");
-                    const docSnap = await getDoc(docRef);
-                    if (docSnap.exists()) {
-                        console.log("Document data:", docSnap.data());
-                        realTokenId = docSnap.data().currentTokenId + 1;
-                        await updateDoc(docRef, {
-                            currentTokenId: realTokenId
-                        });
-                        await setDoc(doc(db, "PsuedoToRealToken", String(realTokenId)), {
-                            psuedoTokenId: newPsuedoTokenId,
-                            hash: hash
-                        });
-                        
-                    }
-                }
-                console.log(walletAddress, walletAddress, burnNFTIds, String(realTokenId), burnNFTAmounts, mintQuantity);
-                const receipt = await contract.methods
-                    .burnNmintBatch(walletAddress, walletAddress, burnNFTIds, String(realTokenId), burnNFTAmounts, mintQuantity)
-                    .send({ from: window.ethereum.selectedAddress });
-                setBlockNumber(receipt.blockNumber);
-                setTxHash(receipt.transactionHash);
-                setEtherscanLink(`https://sepolia.etherscan.io/tx/${receipt.transactionHash}`);
 
-            } catch (error) {
-                console.error('Error creating commit:', error);
+
+                const newPsuedoTokenId = JSON.stringify(psuedoTokenIdJson);
+                const hash = SHA256(newPsuedoTokenId).toString();
+
+                console.log(newPsuedoTokenId);
+
+                try {
+                    const queryRef = query(collection(db, "PsuedoToRealToken"), where("hash", "==", hash));
+                    const querySnapshot = await getDocs(queryRef);
+                    let realTokenId = 0;
+
+                    if (querySnapshot.size > 0) {
+
+                        for (const doc of querySnapshot.docs) {
+                            console.log(doc.id, " => ", doc.data());
+                            realTokenId = doc.id;
+                            console.log(realTokenId);
+                        }
+
+                        const burnNFTIds = [];
+                        const burnNFTAmounts = [];
+                        for (const b of burners) {
+                            burnNFTIds.push(b.id);
+                            burnNFTAmounts.push(b.amount);
+                        }
+
+                        console.log(walletAddress, walletAddress, burnNFTIds, String(realTokenId), burnNFTAmounts, mintQuantity);
+                        const receipt = await contract.methods
+                            .burnNmintBatch(walletAddress, walletAddress, burnNFTIds, String(realTokenId), burnNFTAmounts, mintQuantity)
+                            .send({ from: window.ethereum.selectedAddress });
+                        setBlockNumber(receipt.blockNumber);
+                        setTxHash(receipt.transactionHash);
+                        setEtherscanLink(`https://sepolia.etherscan.io/tx/${receipt.transactionHash}`);
+                    }
+                    else {
+                        console.log("No such document!");
+                        const docRef = doc(db, "Data", "Token");
+                        const docSnap = await getDoc(docRef);
+
+                        const burnNFTIds = [];
+                        const burnNFTAmounts = [];
+                        for (const b of burners) {
+                            burnNFTIds.push(b.id);
+                            burnNFTAmounts.push(b.amount);
+                        }
+
+                        const requests = [];
+
+                        const nftJson = {
+                            product: newMyProduct.id,
+                            manufacturer: walletAddress,
+                        };
+                        nftJson.totalCarbon = parseFloat(newMyProduct.carbonFootprint);
+                        nftJson.productDetails = {
+                            productName: newMyProduct.productName,
+                            description: newMyProduct.description,
+                            isRawMaterial: newMyProduct.isRawMaterial,
+                            weight: newMyProduct.weight,
+                            carbonFootPrint: parseFloat(newMyProduct.carbonFootprint),
+                            manufacturingAddress: newMyProduct.manufacturingAddress,
+                            productImage: newMyProduct.productImage,
+                        };
+                        nftJson.manufacturerDetails = {
+                            companyName: me.companyName,
+                            companyAddress: me.companyAddress,
+                            companyZipCode: me.companyZipCode,
+                            companyWebsite: me.companyWebsite,
+                            companyEmail: me.companyEmail,
+                            companyPhone: me.companyPhone,
+                            companyScale: me.companyScale,
+                            companyLogo: me.companyLogo,
+                        };
+                        for (const burner of burners) {
+                            const requestPromise = new Promise((resolve, reject) => {
+                                const xhr = new XMLHttpRequest();
+                                xhr.open('GET', "https://ipfs.io/ipfs/" + burner.cid, true);
+                                xhr.responseType = 'json';
+                                xhr.onload = function () {
+                                    if (xhr.status === 200) {
+                                        resolve(xhr.response);
+                                    } else {
+                                        reject(new Error(`Request failed with status ${xhr.status}`));
+                                    }
+                                };
+                                xhr.onerror = function () {
+                                    reject(new Error('Request failed'));
+                                };
+                                xhr.send();
+                            });
+                            requests.push(requestPromise);
+                        }
+
+                        Promise.all(requests)
+                            .then(async responses => {
+                                nftJson.supplies = responses;
+                                let totalCarbon = 0;
+                                for (const supply in nftJson.supplies) {
+                                    nftJson.supplies[supply].quantity = burners[supply].amount;
+                                    const totalCarbonOfSupply = (parseFloat(nftJson.supplies[supply].totalCarbon) * parseFloat(burners[supply].amount));
+                                    console.log(parseFloat(nftJson.supplies[supply].totalCarbon), parseFloat(burners[supply].amount), totalCarbonOfSupply);
+                                    totalCarbon += totalCarbonOfSupply;
+                                }
+                                nftJson.totalCarbon += (totalCarbon / parseFloat(mintQuantity));
+                                const nftJsonString = JSON.stringify(nftJson);
+                                console.log("nftJsonString", nftJson);
+
+
+
+                                console.log(walletAddress, walletAddress, burnNFTIds, String(realTokenId), burnNFTAmounts, mintQuantity);
+                                const receipt = await contract.methods
+                                    .burnNmintBatch(walletAddress, walletAddress, burnNFTIds, String(realTokenId), burnNFTAmounts, mintQuantity)
+                                    .send({ from: window.ethereum.selectedAddress });
+                                setBlockNumber(receipt.blockNumber);
+                                setTxHash(receipt.transactionHash);
+                                setEtherscanLink(`https://sepolia.etherscan.io/tx/${receipt.transactionHash}`);
+
+
+                                const CID = await uploadJson(nftJsonString);
+                                setCid(CID);
+                                console.log(CID);
+                                if (docSnap.exists()) {
+                                    console.log("Document data:", docSnap.data());
+                                    realTokenId = docSnap.data().currentTokenId + 1;
+                                    await updateDoc(docRef, {
+                                        currentTokenId: realTokenId
+                                    });
+                                    await setDoc(doc(db, "PsuedoToRealToken", String(realTokenId)), {
+                                        psuedoTokenId: newPsuedoTokenId,
+                                        hash: hash,
+                                        cid: CID,
+                                    });
+                                }
+                            })
+                            .catch(error => {
+                                // Handle errors if any of the requests fail
+                                console.error(error);
+                                alert("Error in fetching product details");
+                                return;
+                            });
+                    }
+
+
+                } catch (error) {
+                    console.error('Error creating commit:', error);
+                }
+
+
+
+
+
+
+
+
+
+
+            } else {
+                alert("Please add atleast one product to consume");
             }
         }
     };
@@ -244,18 +359,25 @@ const MixNCreate = ({ isConnected }) => {
         setMintQuantity('');
         const docRef = doc(db, "companies", walletAddress);
         const docSnap = await getDoc(docRef);
+        let isProductAvailable = false;
         if (docSnap.exists()) {
             console.log("Document data:", docSnap.data());
             if (docSnap.data().products) {
-
-                docSnap.data().products.map(async (p) => {
-                    const docRef = doc(db, "products", p);
-                    const docSnap = await getDoc(docRef);
-                    if (docSnap.exists()) {
-                        console.log("Document data:", docSnap.data());
-                        setAllMyProducts((allMyProducts) => [...allMyProducts, { ...docSnap.data(), id: p }]);
-                    }
-                })
+                await Promise.all(
+                    docSnap.data().products.map(async (p) => {
+                        const docRef = doc(db, "products", p);
+                        const docSnap = await getDoc(docRef);
+                        if (docSnap.exists()) {
+                            if (!docSnap.data().isRawMaterial) {
+                                isProductAvailable = true;
+                                console.log("Document data:", docSnap.data());
+                                setAllMyProducts((allMyProducts) => [...allMyProducts, { ...docSnap.data(), id: p }]);
+                            }
+                        }
+                    }));
+                if (!isProductAvailable) {
+                    alert("No products registered for this company");
+                }
             }
             else {
                 alert("No products registered for this company");
@@ -266,6 +388,17 @@ const MixNCreate = ({ isConnected }) => {
             console.log("No such document!");
         }
     }
+    const handleMe = async (address) => {
+        setWalletAddress(address);
+        const docRef = doc(db, "companies", address);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            console.log("Document data:", docSnap.data());
+            setMe(docSnap.data());
+        } else {
+            alert("Company not registered");
+        }
+    }
 
     return (
         <div className={classes.wrapper}>
@@ -274,7 +407,7 @@ const MixNCreate = ({ isConnected }) => {
                 <FormControl className={classes.input}>
                     <Select
                         value={walletAddress}
-                        onChange={(e) => setWalletAddress(e.target.value)}
+                        onChange={(e) => handleMe(e.target.value)}
                         displayEmpty
                         required
                     >
@@ -362,7 +495,7 @@ const MixNCreate = ({ isConnected }) => {
                             </>
 
                         )}
-                        {burnNFTs.length > 1 && (
+                        {burnNFTs.length > 0 && (
                             <>
                                 <Button
                                     className={classes.button}
@@ -384,7 +517,7 @@ const MixNCreate = ({ isConnected }) => {
                                             >
                                                 <MenuItem value='' disabled>Select Product</MenuItem>
                                                 {allMyProducts.map((p, index) => (
-                                                    <MenuItem value={p.id} key={index}>{p.productName} (Qty: {p.baseQuantity}, Carbon footprint: {p.carbonFootprint})</MenuItem>
+                                                    <MenuItem value={p} key={index}>{p.productName} (Description: {p.description}, Carbon footprint: {p.carbonFootprint})</MenuItem>
                                                 ))}
                                             </Select>
                                         </FormControl>
@@ -425,10 +558,24 @@ const MixNCreate = ({ isConnected }) => {
             {blockNumber && (
                 <div>
                     <div>
-                        <span>blockNumber: {blockNumber ? blockNumber : 'Waiting...'}</span>
+                        <span>blockNumber: {blockNumber}</span>
                     </div>
                     <div>
-                        <span>txHash: {txHash ? txHash : 'Waiting...'}</span>
+                        <span>txHash: {txHash}</span>
+                    </div>
+                    <div>
+                        <span>CID: {cid ? cid : 'Waiting...'}</span>
+                    </div>
+                    <div>
+                        <span>View NFT Metadata: {"https://" + cid + ".ipfs.nftstorage.link"}</span>
+                        <Button
+                            disabled={!cid}
+                            variant="contained"
+                            color="primary"
+                            onClick={() => handleRedirect("https://" + cid + ".ipfs.nftstorage.link")}
+                        >
+                            {txHash ? 'Redirect' : 'Waiting...'}
+                        </Button>
                     </div>
                     <div>
                         <span>View on Etherscan: {etherscanLink}</span>

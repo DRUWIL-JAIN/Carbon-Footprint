@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import Web3 from 'web3';
 import { TextField, Button, Select, MenuItem, FormControl } from '@material-ui/core';
-import db from "./firebase";
+import { db } from "./firebase";
 import { doc, getDoc, getDocs, query, collection, where, updateDoc, setDoc } from "firebase/firestore";
 import { CONTRACT_ADDRESS } from "../constant"
 import useStyles from './style';
 import { useNavigate } from 'react-router-dom';
 import { SHA256 } from 'crypto-js';
+import { uploadJson } from "./upload.mjs"
 
 
 
@@ -42,7 +43,7 @@ const AssetTransfer = ({ isConnected }) => {
   const [transportInvolved, setTransportInvolved] = useState([]);
   const [transportInstance, setTransportInstance] = useState('');
   const [distanceInstance, setDistanceInstance] = useState('');
-  const [additionalWeight, setAdditionalWeight] = useState(0);
+  const [cid, setCid] = useState('');
 
 
   useEffect(() => {
@@ -105,6 +106,7 @@ const AssetTransfer = ({ isConnected }) => {
     }
   }
 
+
   const fetchProduct = async () => {
     setProducts([]);
     setProduct(null);
@@ -112,7 +114,6 @@ const AssetTransfer = ({ isConnected }) => {
     setTransportInvolved([]);
     setTransportInstance('');
     setDistanceInstance('');
-    setAdditionalWeight(0);
 
 
 
@@ -138,6 +139,7 @@ const AssetTransfer = ({ isConnected }) => {
             if (document.exists()) {
               console.log(document.id, " => ", document.data());
               const psuedoTokenId = document.data().psuedoTokenId;
+              const cid = document.data().cid;
               console.log(psuedoTokenId);
 
               const psuedoTokenIdJson = JSON.parse(psuedoTokenId);
@@ -155,9 +157,9 @@ const AssetTransfer = ({ isConnected }) => {
                 console.log("Document data:", docManufacturerSnap.data());
                 mDetail = docManufacturerSnap.data();
               }
-              if(pDetail && mDetail){
-                const trace = pDetail.productName + " (Manufacturer: " + mDetail.companyName+")";
-                setProducts((products) => [...products, { ...p, trace: trace, psuedoTokenIdJson: psuedoTokenIdJson, pDetail: pDetail, mDetail: mDetail }]);
+              if (pDetail && mDetail) {
+                const trace = pDetail.productName + " (Manufacturer: " + mDetail.companyName + ")";
+                setProducts((products) => [...products, { ...p, trace: trace, psuedoTokenIdJson: psuedoTokenIdJson, pDetail: pDetail, mDetail: mDetail, cid: cid }]);
               }
             }
 
@@ -176,21 +178,37 @@ const AssetTransfer = ({ isConnected }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if(transportInvolved.length == 0){
+    if (me.companyType == 'Logistics' && transportInvolved.length == 0) {
       alert("Please select atleast one transport company");
       return;
     }
 
     try {
-
       console.log("Product", product.psuedoTokenIdJson);
       let psuedoTokenIdJson = product.psuedoTokenIdJson;
-      if(client.companyType == "Logistics"){
-        if(!psuedoTokenIdJson.L){
-        psuedoTokenIdJson.L = [walletAddress];
+
+      if (client.companyType == "Logistics") {
+        if (!psuedoTokenIdJson.L) {
+          psuedoTokenIdJson.L = [client.id];
         }
-        else{
-          psuedoTokenIdJson.L.push(walletAddress);
+        else {
+          psuedoTokenIdJson.L.push(client.id);
+        }
+      }
+      else if (client.companyType == "Retailer") {
+        if (!psuedoTokenIdJson.R) {
+          psuedoTokenIdJson.R = [client.id];
+        }
+        else {
+          psuedoTokenIdJson.R.push(client.id);
+        }
+      }
+      else if (client.companyType == "Manufacturer") {
+        if (!psuedoTokenIdJson.S) {
+          psuedoTokenIdJson.St = [client.id];
+        }
+        else {
+          psuedoTokenIdJson.St.push(client.id);
         }
       }
       console.log("Product", psuedoTokenIdJson);
@@ -206,30 +224,114 @@ const AssetTransfer = ({ isConnected }) => {
           console.log(doc.id, " => ", doc.data());
           realTokenId = doc.id;
         });
+        const receipt = await contract.methods
+          .burnNmint(walletAddress, client.id, product.token_id, String(realTokenId), quantity)
+          .send({ from: window.ethereum.selectedAddress });
+        setBlockNumber(receipt.blockNumber);
+        setTxHash(receipt.transactionHash);
+        setEtherscanLink(`https://sepolia.etherscan.io/tx/${receipt.transactionHash}`);
+        console.log(receipt);
       }
       else {
         console.log("No such document!");
         const docRef = doc(db, "Data", "Token");
         const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          console.log("Document data:", docSnap.data());
-          realTokenId = docSnap.data().currentTokenId + 1;
-          await updateDoc(docRef, {
-            currentTokenId: realTokenId
-          });
-          await setDoc(doc(db, "PsuedoToRealToken", String(realTokenId)), {
-            psuedoTokenId: psuedoTokenId,
-            hash: hash,
-          });
-        }
+
+        const url = "https://ipfs.io/ipfs/" + product.cid;
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', url, true);
+        xhr.responseType = 'json';
+        xhr.onload = async function () {
+          var status = xhr.status;
+          if (status === 200) {
+            // console.log(xhr.response);
+            const data = xhr.response;
+            let nftJson = data;
+
+            if (me.companyType == "Logistics") {
+              const foundLogistics = nftJson.logistics.findIndex(logistic => logistic.companyId === walletAddress);
+              if (foundLogistics != -1) {
+                console.log("Found logistics object:", foundLogistics);
+                nftJson.logistics[foundLogistics].transportInvolved = transportInvolved;
+                console.log("Updated logistics object:", nftJson);
+                let totalCarbon = nftJson.totalCarbon;
+                for (const t in transportInvolved) {
+                  // console.log(transportInvolved[t].Distance, product.pDetail.weight, transportInvolved[t].Transport.carbonFootprintPKMPKG);
+                  totalCarbon += parseFloat(transportInvolved[t].Distance) * parseFloat(product.pDetail.weight) * parseFloat(transportInvolved[t].Transport.carbonFootprintPKMPKG);
+                }
+                nftJson.totalCarbon = totalCarbon;
+              } else {
+                alert("Logistics object not found.")
+                return;
+              }
+            }
+            const clientData = {
+              companyId: client.id,
+              companyName: client.companyName,
+              companyAddress: client.companyAddress,
+              companyZipCode: client.companyZipCode,
+              companyWebsite: client.companyWebsite,
+              companyEmail: client.companyEmail,
+              companyPhone: client.companyPhone,
+              companyScale: client.companyScale,
+              companyLogo: client.companyLogo,
+            }
+            if (client.companyType == "Logistics") {
+
+              if (!nftJson.logistics) {
+                nftJson.logistics = [clientData];
+              }
+              else {
+                nftJson.logistics.push(clientData);
+              }
+            }
+            else if (client.companyType == "Retailer") {
+
+              nftJson.retailer = clientData;
+            } else if (client.companyType == "Manufacturer") {
+              nftJson.currentlyAt = clientData;
+            }
+            console.log("Product", nftJson);
+
+            if (docSnap.exists()) {
+              console.log("Document data:", docSnap.data());
+              realTokenId = docSnap.data().currentTokenId + 1;
+
+              const receipt = await contract.methods
+                .burnNmint(walletAddress, client.id, product.token_id, String(realTokenId), quantity)
+                .send({ from: window.ethereum.selectedAddress });
+              setBlockNumber(receipt.blockNumber);
+              setTxHash(receipt.transactionHash);
+              setEtherscanLink(`https://sepolia.etherscan.io/tx/${receipt.transactionHash}`);
+              console.log(receipt);
+
+              const nftJsonString = JSON.stringify(nftJson);
+              console.log("nftJsonString", nftJson);
+              const CID = await uploadJson(nftJsonString);
+              setCid(CID);
+
+              await updateDoc(docRef, {
+                currentTokenId: realTokenId
+              });
+              await setDoc(doc(db, "PsuedoToRealToken", String(realTokenId)), {
+                psuedoTokenId: psuedoTokenId,
+                hash: hash,
+                cid: CID
+              });
+            }
+
+          }
+          else {
+            alert("Error in fetching data, Internet might be down")
+            return;
+          }
+        };
+        xhr.send();
+
+
       }
       console.log(walletAddress, client.id, product.token_id, realTokenId, quantity);
-      const receipt = await contract.methods
-        .burnNmint(walletAddress, client.id, product.token_id, String(realTokenId), quantity)
-        .send({ from: window.ethereum.selectedAddress });
-      setBlockNumber(receipt.blockNumber);
-      setTxHash(receipt.transactionHash);
-      setEtherscanLink(`https://sepolia.etherscan.io/tx/${receipt.transactionHash}`);
+
     } catch (error) {
       console.error('Error creating commit:', error);
     }
@@ -246,12 +348,9 @@ const AssetTransfer = ({ isConnected }) => {
     if (docSnap.exists()) {
       console.log("Document data:", docSnap.data());
       setMe(docSnap.data());
-      if(docSnap.data().companyType=='Logistics')
-      {
-        if(docSnap.data().transportation)
-        {
-          for(const t of docSnap.data().transportation)
-          {
+      if (docSnap.data().companyType == 'Logistics') {
+        if (docSnap.data().transportation) {
+          for (const t of docSnap.data().transportation) {
             const docRef = doc(db, "transportation", t);
             const docSnap = await getDoc(docRef);
             if (docSnap.exists()) {
@@ -260,7 +359,7 @@ const AssetTransfer = ({ isConnected }) => {
             }
           }
         }
-        else{
+        else {
           alert("No transportation assigned");
           setWalletAddress('');
         }
@@ -269,12 +368,11 @@ const AssetTransfer = ({ isConnected }) => {
   };
 
   const addTransport = async (e) => {
-    if(transportInstance=='' || distanceInstance=='' || distanceInstance<=0)
-    {
+    if (transportInstance == '' || distanceInstance == '' || distanceInstance <= 0) {
       alert("Enter all details");
       return;
     }
-    setTransportInvolved((transportInvolved)=> [...transportInvolved, {Transport: transportInstance, Distance: distanceInstance}]);
+    setTransportInvolved((transportInvolved) => [...transportInvolved, { Transport: transportInstance, Distance: distanceInstance }]);
     setTransportInstance('');
     setDistanceInstance('');
   }
@@ -384,20 +482,6 @@ const AssetTransfer = ({ isConnected }) => {
                     )}
                     {me && me.companyType === 'Logistics' && product && (
                       <>
-                        <TextField
-                          label={"Additional Weight (By manufacturer: " + product.pDetail.weight + " kg)"}
-                          value={additionalWeight}
-                          onChange={(e) => setAdditionalWeight(e.target.value)}
-                          fullWidth
-                          className={classes.input}
-                          required
-                          type="number"
-                          InputProps={{
-                            inputProps: {
-                              min: 0
-                            }
-                          }}
-                        />
                         <ol>
                           {transportInvolved.map((item, index) => (
                             <li key={index}>
@@ -463,10 +547,24 @@ const AssetTransfer = ({ isConnected }) => {
       {blockNumber && (
         <div>
           <div>
-            <span>blockNumber: {blockNumber ? blockNumber : 'Waiting...'}</span>
+            <span>blockNumber: {blockNumber}</span>
           </div>
           <div>
-            <span>txHash: {txHash ? txHash : 'Waiting...'}</span>
+            <span>txHash: {txHash}</span>
+          </div>
+          <div>
+            <span>CID: {cid ? cid : 'Waiting...'}</span>
+          </div>
+          <div>
+            <span>View NFT Metadata: {"https://" + cid + ".ipfs.nftstorage.link"}</span>
+            <Button
+              disabled={!cid}
+              variant="contained"
+              color="primary"
+              onClick={() => handleRedirect("https://" + cid + ".ipfs.nftstorage.link")}
+            >
+              {txHash ? 'Redirect' : 'Waiting...'}
+            </Button>
           </div>
           <div>
             <span>View on Etherscan: {etherscanLink}</span>

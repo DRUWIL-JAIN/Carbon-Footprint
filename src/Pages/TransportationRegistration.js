@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TextField, Button, Select, MenuItem, FormControl } from '@material-ui/core';
 import Web3 from 'web3';
-import db from "./firebase";
+import {db} from "./firebase";
 import { doc, updateDoc, getDoc, addDoc, collection, arrayUnion } from "firebase/firestore";
 import useStyles from './style';
 import { useNavigate } from 'react-router-dom';
@@ -10,7 +10,6 @@ import { useNavigate } from 'react-router-dom';
 const TransportationRegistration = ({ isConnected }) => {
     const classes = useStyles();
     const [vehicleName, setVehicleName] = useState('');
-    const [maxWeight, setMaxWeight] = useState('');
     const [vehicleType, setVehicleType] = useState('');
     const [carbonFootprintPKMPKG, setCarbonFootprintPKMPKG] = useState('');
     const [accountAddresses, setAccountAddresses] = useState([]);
@@ -63,7 +62,6 @@ const TransportationRegistration = ({ isConnected }) => {
                 const docRef = await addDoc(collection(db, "transportation"), {
 
                     vehicleName: vehicleName,
-                    maxWeight: maxWeight,
                     vehicleType: vehicleType,
                     carbonFootprintPKMPKG: carbonFootprintPKMPKG,
                     company: walletAddress,
@@ -85,7 +83,6 @@ const TransportationRegistration = ({ isConnected }) => {
 
         // Reset the form
         setVehicleName('');
-        setMaxWeight('');
         setVehicleType('');
         setCarbonFootprintPKMPKG('');
 
@@ -100,13 +97,6 @@ const TransportationRegistration = ({ isConnected }) => {
                     label="Vehicle Name"
                     value={vehicleName}
                     onChange={e => setVehicleName(e.target.value)}
-                    required
-                />
-                <TextField
-                    className={classes.input}
-                    label="Max weight capacity in Kgs"
-                    value={maxWeight}
-                    onChange={e => setMaxWeight(e.target.value)}
                     required
                 />
                 <TextField

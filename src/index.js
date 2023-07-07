@@ -28,12 +28,14 @@ const Navigation = () => {
   const classes = useStyles();
   const [walletConnected, setWalletConnected] = useState(false);
   const navigate = useNavigate();
+  const [walletAddress, setWalletAddress] = useState('');
 
   const connectWallet = async () => {
     if (window.ethereum) {
       try {
         await window.ethereum.request({ method: 'eth_requestAccounts' });
         setWalletConnected(true);
+        setWalletAddress(window.ethereum.selectedAddress);
       } catch (error) {
         console.error(error);
         setWalletConnected(false);
@@ -132,6 +134,13 @@ const Navigation = () => {
               <Button color="inherit" className={classes.link} disabled="true">
                 Connected
               </Button>
+              <Typography
+                variant="body1"
+                style={{ marginRight: '1rem' }}
+                className={classes.link}
+              >
+                {walletAddress}
+              </Typography>
             </div>
           ) : (
             <div>
