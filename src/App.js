@@ -59,7 +59,7 @@ export default function App() {
   const { pathname } = useLocation();
   const [count, setCount] = useState(0);
   const notNeedRes = ['/authentication/sign-in', '/authentication/sign-up', '/authentication/forgot-password']
-
+  const [newRoutes, setNewRoutes] = useState(routes);
   
 
   // const data = [
@@ -585,10 +585,17 @@ export default function App() {
     if(!notNeedRes.includes(pathname)){
     if (window.ethereum.selectedAddress) {
       console.log(window.ethereum.selectedAddress);
-      const docRef = doc(db, "companies", window.ethereum.selectedAddress);
+      const docRef = doc(db, "companies", (window.ethereum.selectedAddress).toLowerCase());
       getDoc(docRef).then((doc) => {
         if (doc.exists()) {
           console.log("Document data:", doc.data());
+          for( const r of routes)
+          {
+            if(r.access.includes(doc.data().companyType))
+            {
+              setNewRoutes((prev) => prev.filter((route) => route.access.includes(doc.data().companyType)));
+            }
+          }
         } else {
           console.log("No such document!");
           navigate("/authentication/sign-up");
@@ -658,7 +665,7 @@ export default function App() {
               color={sidenavColor}
               brand={(transparentSidenav && !darkMode) || whiteSidenav ? brandDark : brandWhite}
               brandName="Material Dashboard 2"
-              routes={routes}
+              routes={newRoutes}
               onMouseEnter={handleOnMouseEnter}
               onMouseLeave={handleOnMouseLeave}
             />
@@ -668,7 +675,7 @@ export default function App() {
         )}
         {layout === "vr" && <Configurator />}
         <Routes>
-          {getRoutes(routes)}
+          {getRoutes(newRoutes)}
           <Route path="*" element={<Navigate to="/dashboard" />} />
         </Routes>
       </ThemeProvider>
@@ -682,7 +689,7 @@ export default function App() {
             color={sidenavColor}
             brand={(transparentSidenav && !darkMode) || whiteSidenav ? brandDark : brandWhite}
             brandName="Green Foot"
-            routes={routes}
+            routes={newRoutes}
             onMouseEnter={handleOnMouseEnter}
             onMouseLeave={handleOnMouseLeave}
           />
@@ -692,7 +699,7 @@ export default function App() {
       )}
       {layout === "vr" && <Configurator />}
       <Routes>
-        {getRoutes(routes)}
+        {getRoutes(newRoutes)}
         <Route path="*" element={<Navigate to="/dashboard" />} />
       </Routes>
     </ThemeProvider>

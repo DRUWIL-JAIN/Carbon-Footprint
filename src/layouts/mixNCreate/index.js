@@ -31,8 +31,8 @@ import Header from "layouts/issueToken/components/Header";
 
 
 //firebase
-import { doc, updateDoc, getDoc, addDoc, collection, arrayUnion, query, where, getDocs, setDoc } from "firebase/firestore";
-import { db, storage } from "../../firebase";
+import { doc, updateDoc, getDoc, collection, query, where, getDocs, setDoc } from "firebase/firestore";
+import { db } from "../../firebase";
 
 //web3
 import { CONTRACT_ADDRESS } from "../../constant"
@@ -604,17 +604,18 @@ function Billing() {
             Tokenized Products (Non Raw Materials)
           </MDTypography>
           <Grid container spacing={3}>
-          {mintedProducts.map((product) => { return !product.pDetail.isRawMaterial ?
-              (<Grid key={product.id} item xs={12} lg={6} xl={3}>
-                <DefaultInfoCard
-                  icon={product.pDetail.productImage}
-                  title={product.pDetail.productName}
-                  description={product.mDetail.companyName}
-                  value={"Qty: " + product.amount}
-                  hash={product.hash}
-                  cid={product.cid}
-                />
-              </Grid>) : (<></>)
+            {mintedProducts.map((product) => {
+              return !product.pDetail.isRawMaterial ?
+                (<Grid key={product.id} item xs={12} lg={6} xl={3}>
+                  <DefaultInfoCard
+                    icon={product.pDetail.productImage}
+                    title={product.pDetail.productName}
+                    description={product.mDetail.companyName}
+                    value={"Qty: " + product.amount}
+                    hash={product.hash}
+                    cid={product.cid}
+                  />
+                </Grid>) : (<></>)
             })}
           </Grid>
         </MDBox>

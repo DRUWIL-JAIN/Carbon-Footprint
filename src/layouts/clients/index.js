@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from "react";
-// @mui material components
-import Card from "@mui/material/Card";
 
 // Material Dashboard 2 React components
 import MDBox from "components/MDBox";
@@ -277,19 +275,19 @@ function Tables() {
           </MDBox>
         </MDBox>
         <MDBox pt={2} px={2} lineHeight={1.25}>
-            <MDTypography variant="h6" fontWeight="medium">
-              Your Clients
-            </MDTypography>
-          </MDBox>
-          <MDBox>
-            <DataTable
-              table={data.rows?.length > 0 ? data : tempData}
-              isSorted={false}
-              entriesPerPage={false}
-              showTotalEntries={false}
-              noEndBorder
-            />
-          </MDBox>
+          <MDTypography variant="h6" fontWeight="medium">
+            Your Clients
+          </MDTypography>
+        </MDBox>
+        <MDBox>
+          <DataTable
+            table={data.rows?.length > 0 ? data : tempData}
+            isSorted={false}
+            entriesPerPage={false}
+            showTotalEntries={false}
+            noEndBorder
+          />
+        </MDBox>
       </Header>
       {renderMessage}
       <Footer />

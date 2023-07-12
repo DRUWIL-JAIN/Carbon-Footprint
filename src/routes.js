@@ -43,6 +43,7 @@ const routes = [
     key: "dashboard",
     icon: <Icon fontSize="small">dashboard</Icon>,
     route: "/dashboard",
+    access: ["Manufacturer","Retailer","Logistics"],
     component: <Dashboard />,
   },
   {
@@ -51,6 +52,7 @@ const routes = [
     key: "products",
     icon: <Icon fontSize="small">category</Icon>,
     route: "/products",
+    access: ["Manufacturer"],
     component: <Products />,
   },
   {
@@ -59,6 +61,7 @@ const routes = [
     key: "clients",
     icon: <Icon fontSize="small">peopleAlt</Icon>,
     route: "/clients",
+    access: ["Manufacturer","Retailer","Logistics"],
     component: <Clients />,
   },
   {
@@ -67,6 +70,7 @@ const routes = [
     key: "transportation",
     icon: <Icon fontSize="small">directions_boat</Icon>,
     route: "/transportation",
+    access: ["Logistics"],
     component: <Transportation />,
   },
   {
@@ -75,6 +79,7 @@ const routes = [
     key: "issue-token",
     icon: <Icon fontSize="small">token</Icon>,
     route: "/issue-token",
+    access: ["Manufacturer"],
     component: <IssueToken />,
   },
   {
@@ -83,6 +88,7 @@ const routes = [
     key: "asset-transfer",
     icon: <Icon fontSize="small">move_up</Icon>,
     route: "/asset-transfer",
+    access: ["Manufacturer","Retailer","Logistics"],
     component: <AssetTransfer />,
   },
   {
@@ -91,6 +97,7 @@ const routes = [
     key: "mix-N-create",
     icon: <Icon fontSize="small">tune</Icon>,
     route: "/mix-N-create",
+    access: ["Manufacturer"],
     component: <MixNCreate />,
   },
   {
@@ -99,6 +106,7 @@ const routes = [
     key: "qr-code",
     icon: <Icon fontSize="small">qr_code</Icon>,
     route: "/qr-code",
+    access: ["Manufacturer","Retailer","Logistics"],
     component: <QRCode />,
   },
   {
@@ -107,6 +115,7 @@ const routes = [
     key: "sign-in",
     icon: <Icon fontSize="small">login</Icon>,
     route: "/authentication/sign-in",
+    access: ["Manufacturer","Retailer","Logistics"],
     component: <SignIn />,
   },
   {
@@ -115,6 +124,7 @@ const routes = [
     key: "sign-up",
     icon: <Icon fontSize="small">assignment</Icon>,
     route: "/authentication/sign-up",
+    access: ["Manufacturer","Retailer","Logistics"],
     component: <SignUp />,
   }
 ];

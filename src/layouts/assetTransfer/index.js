@@ -28,15 +28,10 @@ import DefaultInfoCard from "examples/Cards/InfoCards/DefaultInfoCard";
 import Header from "layouts/issueToken/components/Header";
 
 
-// Billing page components
-import PaymentMethod from "layouts/billing/components/PaymentMethod";
-import Invoices from "layouts/billing/components/Invoices";
-import BillingInformation from "layouts/billing/components/BillingInformation";
-import Transactions from "layouts/issueToken/components/Transactions";
 
 //firebase
-import { doc, updateDoc, getDoc, addDoc, collection, arrayUnion, query, where, getDocs, setDoc } from "firebase/firestore";
-import { db, storage } from "../../firebase";
+import { doc, updateDoc, getDoc, collection, query, where, getDocs, setDoc } from "firebase/firestore";
+import { db } from "../../firebase";
 
 //web3
 import { CONTRACT_ADDRESS } from "../../constant"
@@ -57,7 +52,6 @@ function Billing() {
   const [etherscanLink, setEtherscanLink] = useState('');
   const [txHash, setTxHash] = useState('');
   const [product, setProduct] = useState('');
-  const [allProducts, setAllProducts] = useState([]);
   const [quantity, setQuantity] = useState('');
   const [cid, setCid] = useState('');
   const [me, setMe] = useState('');
@@ -68,7 +62,6 @@ function Billing() {
   const [mintedProducts, setMintedProducts] = useState([]);
   const [clients, setClients] = useState([]);
   const [client, setClient] = useState('');
-  const [products, setProducts] = useState([]);
   const [transportation, setTransportation] = useState([]);
   const [transportInvolved, setTransportInvolved] = useState([]);
   const [transportInstance, setTransportInstance] = useState('');
@@ -567,7 +560,7 @@ function Billing() {
                       >
                         <MenuItem value={''} disabled>Select Product</MenuItem>
                         {mintedProducts.map((p) => (
-                          <MenuItem key={p.pDetail.id} value={p}>{p.pDetail.productName} (Description: {p.pDetail.description}, Hash: {p.hash.slice(0,15)+"..."})</MenuItem>
+                          <MenuItem key={p.pDetail.id} value={p}>{p.pDetail.productName} (Description: {p.pDetail.description}, Hash: {p.hash.slice(0, 15) + "..."})</MenuItem>
                         ))}
                       </Select>
                     </FormControl>
@@ -721,38 +714,38 @@ function Billing() {
           <MDBox mb={2} pt={2}>
             {progress < 100 && (
               <>
-              <MDBox mb={2} sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                height: '100%',
-              }}>
-                <MDBox component="img" src={me.companyLogo} alt="logo" sx={{
-                  width: '100px',
-                  height: '100px',
-                  borderRadius: '50%',
-                  border: '1px solid #e0e0e0',
-                }} />
-                <MDBox sx={{
+                <MDBox mb={2} sx={{
                   display: 'flex',
-                  flexDirection: 'column',
+                  justifyContent: 'space-between',
                   alignItems: 'center',
                   height: '100%',
                 }}>
-                  <Icon fontSize="medium">arrow_forward</Icon>
+                  <MDBox component="img" src={me.companyLogo} alt="logo" sx={{
+                    width: '100px',
+                    height: '100px',
+                    borderRadius: '50%',
+                    border: '1px solid #e0e0e0',
+                  }} />
+                  <MDBox sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    height: '100%',
+                  }}>
+                    <Icon fontSize="medium">arrow_forward</Icon>
+                  </MDBox>
+                  <MDBox component="img" src={client.companyLogo} alt="logo" sx={{
+                    width: '100px',
+                    height: '100px',
+                    borderRadius: '50%',
+                    border: '1px solid #e0e0e0',
+                  }} />
                 </MDBox>
-                <MDBox component="img" src={client.companyLogo} alt="logo" sx={{
-                  width: '100px',
-                  height: '100px',
-                  borderRadius: '50%',
-                  border: '1px solid #e0e0e0',
-                }} />
-              </MDBox>
-              <MDBox>
-                <MDTypography variant="h6" fontWeight="medium" color="black" mt={1}>
-                  {states[currentState].message}
-                </MDTypography>
-                <MDProgress variant="gradient" color={"success"} value={progress} />
+                <MDBox>
+                  <MDTypography variant="h6" fontWeight="medium" color="black" mt={1}>
+                    {states[currentState].message}
+                  </MDTypography>
+                  <MDProgress variant="gradient" color={"success"} value={progress} />
                 </MDBox>
               </>
             )}

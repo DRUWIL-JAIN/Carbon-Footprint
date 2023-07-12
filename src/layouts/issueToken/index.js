@@ -29,15 +29,9 @@ import DefaultInfoCard from "examples/Cards/InfoCards/DefaultInfoCard";
 import Header from "layouts/issueToken/components/Header";
 
 
-// Billing page components
-import PaymentMethod from "layouts/billing/components/PaymentMethod";
-import Invoices from "layouts/billing/components/Invoices";
-import BillingInformation from "layouts/billing/components/BillingInformation";
-import Transactions from "layouts/issueToken/components/Transactions";
-
 //firebase
-import { doc, updateDoc, getDoc, addDoc, collection, arrayUnion, query, where, getDocs, setDoc } from "firebase/firestore";
-import { db, storage } from "../../firebase";
+import { doc, updateDoc, getDoc, collection, query, where, getDocs, setDoc } from "firebase/firestore";
+import { db } from "../../firebase";
 
 //web3
 import { CONTRACT_ADDRESS } from "../../constant"

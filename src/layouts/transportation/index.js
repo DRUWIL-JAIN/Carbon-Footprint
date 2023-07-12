@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 // @mui material components
-import Card from "@mui/material/Card";
 import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
@@ -220,10 +219,10 @@ function Tables() {
       <DashboardNavbar />
       <Header>
         <MDBox mt={5} mb={3} pb={2} sx={{
-           borderColor: 'grey.500',
-           borderRadius: '10px',
-           boxShadow: 3,
-           width: '100%',
+          borderColor: 'grey.500',
+          borderRadius: '10px',
+          boxShadow: 3,
+          width: '100%',
         }}>
           <MDBox
             variant="gradient"

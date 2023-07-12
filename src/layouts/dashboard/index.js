@@ -19,24 +19,20 @@ import reportsBarChartData from "layouts/dashboard/data/reportsBarChartData";
 import reportsLineChartData from "layouts/dashboard/data/reportsLineChartData";
 
 // Dashboard components
-import Projects from "layouts/dashboard/components/Projects";
-import OrdersOverview from "layouts/dashboard/components/OrdersOverview";
 import Transactions from "layouts/issueToken/components/Transactions";
 import DefaultInfoCard from "examples/Cards/InfoCards/DefaultInfoCard";
 
 
 
 //firebase
-import { doc, updateDoc, getDoc, addDoc, collection, arrayUnion, query, where, getDocs, setDoc } from "firebase/firestore";
-import { db, storage } from "../../firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../../firebase";
 
 //web3
 import { CONTRACT_ADDRESS } from "../../constant"
-import { Card } from '@mui/material';
-const artifacts = require('../../MyToken.json');
 
 function Dashboard() {
-  const { sales, tasks } = reportsLineChartData;
+  const { sales } = reportsLineChartData;
 
   const [mintedProducts, setMintedProducts] = useState([]);
   const [mintedTransactions, setMintedTransactions] = useState([]);
@@ -278,7 +274,7 @@ function Dashboard() {
                       icon={product.pDetail.productImage}
                       title={product.pDetail.productName}
                       description={product.mDetail.companyName}
-                      hash = {product.hash}
+                      hash={product.hash}
                       value={"Qty: " + product.amount}
                       cid={product.cid}
                     />
@@ -287,8 +283,8 @@ function Dashboard() {
               </Grid>
             </Grid>
             <Grid item xs={12} md={4} lg={4}>
-            <Transactions transaction={mintedTransactions} />
-            </Grid> 
+              <Transactions transaction={mintedTransactions} />
+            </Grid>
           </Grid>
         </MDBox>
       </MDBox>

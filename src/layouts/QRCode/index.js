@@ -1,15 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import Web3 from 'web3';
-import { SHA256 } from 'crypto-js';
-import { uploadJson } from "../../upload.mjs"
 
 // @mui material components
 import Grid from "@mui/material/Grid";
 import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
-import Modal from '@mui/material/Modal';
-import Icon from '@mui/material/Icon';
+
 
 
 // Material Dashboard 2 React components
@@ -18,88 +14,31 @@ import MDTypography from "components/MDTypography";
 import MDButton from "components/MDButton";
 import MDInput from "components/MDInput";
 import MDSnackbar from 'components/MDSnackbar';
-import MDProgress from 'components/MDProgress';
+
 
 // Material Dashboard 2 React examples
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import Footer from "examples/Footer";
-import MasterCard from "examples/Cards/MasterCard";
 import DefaultInfoCard from "examples/Cards/InfoCards/DefaultInfoCard";
 import Header from "layouts/issueToken/components/Header";
 
-
-// Billing page components
-import PaymentMethod from "layouts/billing/components/PaymentMethod";
-import Invoices from "layouts/billing/components/Invoices";
-import BillingInformation from "layouts/billing/components/BillingInformation";
-import Transactions from "layouts/issueToken/components/Transactions";
-
 //firebase
-import { doc, updateDoc, getDoc, addDoc, collection, arrayUnion, query, where, getDocs, setDoc } from "firebase/firestore";
-import { db, storage } from "../../firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../../firebase";
 
-import JsPDF from 'jspdf';
 
 //web3
 import { CONTRACT_ADDRESS } from "../../constant"
-import { Card } from '@mui/material';
-const artifacts = require('../../MyToken.json');
 
-
-
-const contractAddress = CONTRACT_ADDRESS;
 
 function Billing() {
-  const contractABI = artifacts.abi;
-
-  const web3 = new Web3(window.ethereum);
-  const contract = new web3.eth.Contract(contractABI, contractAddress);
-
-
-  const [blockNumber, setBlockNumber] = useState('');
-  const [etherscanLink, setEtherscanLink] = useState('');
-  const [txHash, setTxHash] = useState('');
-  const [product, setProduct] = useState('');
-  const [allProducts, setAllProducts] = useState([]);
-  const [quantity, setQuantity] = useState('');
-  const [cid, setCid] = useState('');
-  const [me, setMe] = useState(null);
-  const [tokenIssued, setTokenIssued] = useState(false);
-  const [open, setOpen] = React.useState(false);
-  const [progress, setProgress] = useState(0);
-  const [currentState, setCurrentState] = useState("fetching");
   const [mintedProducts, setMintedProducts] = useState([]);
-  const [mintedTransactions, setMintedTransactions] = useState([]);
-  const [fileType, setFileType] = useState("CSV");
+  const [fileType, setFileType] = useState("csv");
   const [fileName, setFileName] = useState("");
   const [csvData, setCsvData] = useState([["Name", "Token ID", "Block Number", "CID", "Qrcode Link"]]);
 
 
-  const handleOpen = () => setOpen(true);
-  const handleClose = () => setOpen(false);
-  const states = {
-    minting: {
-      message: "Minting tokens...",
-      image: "",
-    },
-    success: {
-      message: "Tokens minted successfully",
-      image: "",
-    },
-    fetching: {
-      message: "Fetching data...",
-      image: "",
-    },
-    uploading: {
-      message: "Uploading data...",
-      image: "",
-    },
-    storing: {
-      message: "Storing data on IPFS...",
-      image: "",
-    },
-  }
 
   const colors = {
     success: { color: "success", icon: "check" },
@@ -196,26 +135,32 @@ function Billing() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!fileName || !fileType) {
-      openMessage();
+    try {
+      if (!fileName || !fileType) {
+        openMessage();
+        setMessageColor(colors.error);
+        setTitle(["Error", "Please fill all the fields"]);
+        return;
+      }
+      if (fileType == "csv") {
+        console.log(csvData);
+        const csv = csvData.reduce((acc, row) => {
+          acc += row.join(",") + "\n";
+          return acc;
+        }, "");
+        const link = document.createElement("a");
+        link.href = window.URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+        link.download = fileName + ".csv";
+        link.click();
+      }
+      else {
+        setMessageColor(colors.info);
+        setTitle(["Hi", "Please select csv file for now, we are working on other file types"]);
+        openMessage();
+      }
+    } catch (e) {
       setMessageColor(colors.error);
-      setTitle(["Error", "Please fill all the fields"]);
-      return;
-    }
-    if (fileType == "text/csv") {
-      console.log(csvData);
-      const csv = csvData.reduce((acc, row) => {
-        acc += row.join(",") + "\n";
-        return acc;
-      }, "");
-      const link = document.createElement("a");
-      link.href = window.URL.createObjectURL(new Blob([csv], { type: fileType }));
-      link.download = fileName + ".csv";
-      link.click();
-    }
-    else{
-      setMessageColor(colors.info);
-      setTitle(["Hi", "Please select csv file for now, we are working on other file types"]);
+      setTitle(["Error", "Something went wrong"]);
       openMessage();
     }
   };
@@ -257,7 +202,7 @@ function Billing() {
                           height: '30px',
                         }}
                       >
-                        <MenuItem value={'text/csv'} >CSV</MenuItem>
+                        <MenuItem value={'csv'} >CSV</MenuItem>
                         <MenuItem value={'pdf'} >PDF</MenuItem>
                         <MenuItem value={'xlsx'} >XLSX</MenuItem>
 

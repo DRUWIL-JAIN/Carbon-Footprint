@@ -93,7 +93,7 @@ function Cover() {
       const docCompanyRef = doc(db, "companies", walletAddress);
       const docCompanySnap = await getDoc(docCompanyRef);
       if (docCompanySnap.exists()) {
-        setTitle(["Error", "Company already registered."]);
+        setTitle(["Error", "Company with this wallet already registered."]);
         setMessageColor(colors.error);
         openMessage();
         return;

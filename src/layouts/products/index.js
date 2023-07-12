@@ -110,7 +110,7 @@ function Overview() {
       return;
     }
 
-    if(!productName || !description || !weight || !carbonFootprint || !manufacturingAddress || !image){
+    if (!productName || !description || !weight || !carbonFootprint || !manufacturingAddress || !image) {
       setTitle(["Error", "Please fill all the fields."]);
       setMessageColor(colors.error);
       openMessage();
@@ -180,7 +180,7 @@ function Overview() {
   };
 
   const handleFetchProducts = async () => {
-    
+
     if (!window.ethereum.selectedAddress) {
       setTitle(["Error", "Please connect Wallet first."]);
       setMessageColor(colors.error);
@@ -205,7 +205,7 @@ function Overview() {
           const docProductRef = doc(db, "products", product);
           const docProductSnap = await getDoc(docProductRef);
           if (docProductSnap.exists()) {
-            setProducts(prevState => [...prevState, {...docProductSnap.data(), id: product}]);
+            setProducts(prevState => [...prevState, { ...docProductSnap.data(), id: product }]);
           }
         });
       }
