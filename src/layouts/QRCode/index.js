@@ -21,7 +21,7 @@ import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import Footer from "examples/Footer";
 import DefaultInfoCard from "examples/Cards/InfoCards/DefaultInfoCard";
-import Header from "layouts/issueToken/components/Header";
+import Header from "layouts/QRCode/components/Header";
 
 //firebase
 import { doc, getDoc } from "firebase/firestore";

@@ -75,7 +75,7 @@ const routes = [
   },
   {
     type: "collapse",
-    name: "Issue Token",
+    name: "Issue Token (Raw Material)",
     key: "issue-token",
     icon: <Icon fontSize="small">token</Icon>,
     route: "/issue-token",
@@ -84,7 +84,7 @@ const routes = [
   },
   {
     type: "collapse",
-    name: "Assest Transfer",
+    name: "Asset Transfer",
     key: "asset-transfer",
     icon: <Icon fontSize="small">move_up</Icon>,
     route: "/asset-transfer",
@@ -93,10 +93,10 @@ const routes = [
   },
   {
     type: "collapse",
-    name: "Mix & Create",
-    key: "mix-N-create",
+    name: "Manufacture",
+    key: "manufacture",
     icon: <Icon fontSize="small">tune</Icon>,
-    route: "/mix-N-create",
+    route: "/manufacture",
     access: ["Manufacturer"],
     component: <MixNCreate />,
   },

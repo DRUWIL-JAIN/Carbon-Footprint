@@ -25,7 +25,7 @@ import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import Footer from "examples/Footer";
 import MasterCard from "examples/Cards/MasterCard";
 import DefaultInfoCard from "examples/Cards/InfoCards/DefaultInfoCard";
-import Header from "layouts/issueToken/components/Header";
+import Header from "layouts/assetTransfer/components/Header";
 
 
 
@@ -296,7 +296,7 @@ function Billing() {
         }
       }
       else if (client.companyType == "Manufacturer") {
-        if (!psuedoTokenIdJson.S) {
+        if (!psuedoTokenIdJson.St) {
           psuedoTokenIdJson.St = [client.id];
         }
         else {
@@ -380,7 +380,7 @@ function Billing() {
                 let totalCarbon = nftJson.totalCarbon;
                 for (const t in transportInvolved) {
                   // console.log(transportInvolved[t].Distance, product.pDetail.weight, transportInvolved[t].Transport.carbonFootprintPKMPKG);
-                  totalCarbon += parseFloat(transportInvolved[t].Distance) * parseFloat(product.pDetail.weight) * parseFloat(transportInvolved[t].Transport.carbonFootprintPKMPKG);
+                  totalCarbon += parseFloat(transportInvolved[t].Distance) * parseFloat(product.pDetail.weight) * parseFloat(transportInvolved[t].Transport.carbonFootprintPKMPKG) / 1000;
                 }
                 nftJson.totalCarbon = totalCarbon;
               } else {
@@ -770,7 +770,7 @@ function Billing() {
                     </MDButton>
                   </Grid>
                   <Grid item xs={12} md={6}>
-                    <MDButton variant="gradient" color="success" fullWidth onClick={() => handleRedirect("https://" + cid + ".ipfs.nftstorage.link")}>
+                    <MDButton variant="gradient" color="success" fullWidth onClick={() => handleRedirect("https://ipfs.io/ipfs/" + cid)}>
                       See Token Details
                     </MDButton>
                   </Grid>

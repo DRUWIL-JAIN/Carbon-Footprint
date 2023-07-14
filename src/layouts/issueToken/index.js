@@ -36,6 +36,7 @@ import { db } from "../../firebase";
 //web3
 import { CONTRACT_ADDRESS } from "../../constant"
 import { Card } from '@mui/material';
+import { prettyFormat } from '@testing-library/react';
 const artifacts = require('../../MyToken.json');
 
 
@@ -132,7 +133,7 @@ function Billing() {
       const docCompanySnap = await getDoc(docCompanyRef);
       if (docCompanySnap.exists()) {
         console.log("Document data:", docCompanySnap.data());
-        setMe(docCompanySnap.data());
+        setMe({...docCompanySnap.data(), id: docCompanySnap.id});
         if (docCompanySnap.data().products) {
           let isProductAvailable = false;
           await Promise.all(
@@ -303,14 +304,18 @@ function Billing() {
               manufacturer: walletAddress,
             };
             nftJson.totalCarbon = parseFloat(product.carbonFootprint);
+            nftJson.water = parseFloat(product.water);
+            nftJson.carbonOffset = parseFloat(parseFloat(product.carbonFootprint)*parseFloat(product.energy)*0.008);
             nftJson.productDetails = {
               productName: product.productName,
               description: product.description,
               isRawMaterial: product.isRawMaterial,
-              weight: product.weight,
+              weight: parseFloat(product.weight),
               carbonFootPrint: parseFloat(product.carbonFootprint),
               manufacturingAddress: product.manufacturingAddress,
               productImage: product.productImage,
+              water: parseFloat(product.water),
+              renewableEnergy: parseFloat(product.energy),
             };
             nftJson.manufacturerDetails = {
               companyName: me.companyName,
@@ -452,10 +457,10 @@ function Billing() {
       {mintedProducts.length > 0 && (
         <MDBox mb={3} mx={3}>
           <MDTypography mb={1} variant="h4" fontWeight="medium">
-            Tokenized Products (Raw Materials)
+            Your tokenized products (Raw Materials)
           </MDTypography>
           <Grid container spacing={3}>
-            {mintedProducts.map((product) => { return product.pDetail.isRawMaterial ?
+            {mintedProducts.map((product) => { return product.pDetail.isRawMaterial && product.mDetail.id == me.id ?
               (<Grid key={product.id} item xs={12} lg={6} xl={3}>
                 <DefaultInfoCard
                   icon={product.pDetail.productImage}
@@ -547,7 +552,7 @@ function Billing() {
                     </MDButton>
                   </Grid>
                   <Grid item xs={12} md={6}>
-                    <MDButton variant="gradient" color="success" fullWidth onClick={() => handleRedirect("https://" + cid + ".ipfs.nftstorage.link")}>
+                    <MDButton variant="gradient" color="success" fullWidth onClick={() => handleRedirect("https://ipfs.io/ipfs/" + cid)}>
                       See Token Details
                     </MDButton>
                   </Grid>

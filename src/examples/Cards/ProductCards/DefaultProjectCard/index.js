@@ -14,7 +14,7 @@ import CardMedia from "@mui/material/CardMedia";
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
 
-function DefaultProjectCard({ image, label, title, description, weight, carbonFootprint, manufacturingAddress }) {
+function DefaultProjectCard({ image, label, title, description, weight, carbonFootprint, manufacturingAddress, energy, water }) {
 
   return (
     <Card
@@ -68,6 +68,16 @@ function DefaultProjectCard({ image, label, title, description, weight, carbonFo
         <MDBox lineHeight={0}>
           <MDTypography variant="button" fontWeight="light" color="text">
             {carbonFootprint}
+          </MDTypography>
+        </MDBox>
+        <MDBox lineHeight={0}>
+          <MDTypography variant="button" fontWeight="light" color="text">
+            {water}
+          </MDTypography>
+        </MDBox>
+        <MDBox lineHeight={0}>
+          <MDTypography variant="button" fontWeight="light" color="text">
+            {energy}
           </MDTypography>
         </MDBox>
         <MDBox lineHeight={0}>

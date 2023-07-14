@@ -243,7 +243,7 @@ function Tables() {
             <MDBox component="form" role="form">
 
               <Grid container spacing={3}>
-                <Grid item xs={12} md={4}>
+                <Grid item xs={12} md={3}>
                   <MDBox>
                     <MDInput
                       label="Transportation Name"
@@ -254,21 +254,8 @@ function Tables() {
                       fullWidth />
                   </MDBox>
                 </Grid>
-                <Grid item xs={12} md={4}>
-                  <MDBox >
-                    <MDInput
-                      label="Carbon Footprint in per Kg per Km"
-                      value={carbonFootprintPKMPKG}
-                      type='number'
-                      step='0.01'
-                      onChange={e => setCarbonFootprintPKMPKG(e.target.value)}
-                      required
-                      variant="standard"
-                      fullWidth />
-                  </MDBox>
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <MDBox mt={-2}>
+                <Grid item xs={12} md={3}>
+                <MDBox mt={-2}>
                     <Typography variant="caption" fontWeight="thin">
                       Mode of shipment
                     </Typography>
@@ -289,11 +276,46 @@ function Tables() {
                       </Select>
                     </FormControl>
                   </MDBox>
+                 
+                </Grid>
+                <Grid item xs={12} md={3}>
+                <MDBox mt={-2}>
+                    <Typography variant="caption" fontWeight="thin">
+                      Type
+                    </Typography>
+                    <FormControl fullWidth>
+                      <Select
+                        displayEmpty
+                        inputProps={{ 'aria-label': 'Without label' }}
+                        value={vehicleType}
+                        onChange={(e) => setVehicleType(e.target.value)}
+                        sx={{
+                          height: '30px',
+                        }}
+                      >
+                        <MenuItem value={''} disabled>Select transportation type</MenuItem>
+                        {vehicleTypes.map((type) => (
+                          <MenuItem value={type}>{type}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </MDBox>
+                 
+                </Grid>
+                <Grid item xs={12} md={3}>
+                <MDBox >
+                    <MDInput
+                      label="Carbon Footprint in per Kg per Km"
+                      value={carbonFootprintPKMPKG}
+                      type='number'
+                      step='0.01'
+                      onChange={e => setCarbonFootprintPKMPKG(e.target.value)}
+                      required
+                      variant="standard"
+                      fullWidth />
+                  </MDBox>
                 </Grid>
               </Grid>
-
-
-
               <MDBox mt={4} mb={1}>
                 <MDButton variant="gradient" color="success" onClick={handleSubmit} sx={{
                   float: 'right',

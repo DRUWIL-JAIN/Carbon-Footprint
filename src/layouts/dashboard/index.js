@@ -37,6 +37,7 @@ function Dashboard() {
   const [mintedProducts, setMintedProducts] = useState([]);
   const [mintedTransactions, setMintedTransactions] = useState([]);
   const [totalClients, setTotalClients] = useState(0);
+  const [totalCarbon, setTotalCarbon] = useState(0);
 
   const fetchMintedProducts = async () => {
     setMintedProducts([]);
@@ -126,6 +127,7 @@ function Dashboard() {
               }
               if (pDetail) {
                 setMintedTransactions((transactions) => [...transactions, { ...p, name: pDetail.productName }])
+                setTotalCarbon((totalCarbon) => totalCarbon + (pDetail.carbonFootprint)*p.amount)
               }
             }
           }
@@ -181,8 +183,8 @@ function Dashboard() {
               <ComplexStatisticsCard
                 color="dark"
                 icon="weekend"
-                title="Bookings"
-                count={281}
+                title="Carbon Footprint"
+                count={totalCarbon.toFixed(2)}
                 percentage={{
                   color: "success",
                   amount: "+55%",
@@ -244,9 +246,9 @@ function Dashboard() {
                   <MDBox mb={3}>
                     <ReportsBarChart
                       color="info"
-                      title="website views"
-                      description="Last Campaign Performance"
-                      date="campaign sent 2 days ago"
+                      title="(Weekly) Carbon Footprint"
+                      description="Last Week"
+                      date="updated 3 min ago"
                       chart={reportsBarChartData}
                     />
                   </MDBox>
@@ -255,11 +257,9 @@ function Dashboard() {
                   <MDBox mb={3}>
                     <ReportsLineChart
                       color="success"
-                      title="daily sales"
+                      title="(Monthy) Carbon Footprint"
                       description={
-                        <>
-                          (<strong>+15%</strong>) increase in today sales.
-                        </>
+                         "2022-2023"
                       }
                       date="updated 4 min ago"
                       chart={sales}

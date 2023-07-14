@@ -12,6 +12,11 @@ import MDInput from "components/MDInput";
 import MDButton from "components/MDButton";
 import MDSnackbar from "components/MDSnackbar";
 
+import Stack from '@mui/material/Stack';
+import Slider from '@mui/material/Slider';
+import VolumeDown from '@mui/icons-material/VolumeDown';
+import VolumeUp from '@mui/icons-material/VolumeUp';
+
 import React, { useState } from 'react';
 
 
@@ -43,6 +48,8 @@ function Overview() {
   const [materials, setMaterials] = useState([]);
   const [selectedMaterial, setSelectedMaterial] = useState('');
   const [products, setProducts] = useState([]);
+  const [energy, setEnergy] = useState(0);
+  const [water, setWater] = useState('');
 
   const colors = {
     success: { color: "success", icon: "check" },
@@ -91,7 +98,7 @@ function Overview() {
   const handleMaterialChange = async (event) => {
     setSelectedMaterial(event.target.value);
     setWeight(event.target.value.unit);
-    setCarbonFootprint(event.target.value.carbonFootprint);
+    setCarbonFootprint(event.target.value.carbonFootprint/1000);
 
   }
 
@@ -135,11 +142,13 @@ function Overview() {
         const docRef = await addDoc(collection(db, "products"), {
           productName: productName,
           description: description,
-          carbonFootprint: carbonFootprint,
+          carbonFootprint: parseFloat(carbonFootprint),
           companyAddress: walletAddress,
-          weight: weight,
+          weight: parseFloat(weight),
           isRawMaterial: isRawMaterial,
           manufacturingAddress: manufacturingAddress,
+          energy: parseFloat(energy),
+          water: parseFloat(water),
         });
 
         if (image) {
@@ -283,7 +292,6 @@ function Overview() {
                     fontWeight="bold"
                     color="success"
                     textGradient
-                    href="#"
                     onClick={() => setIsFetchClicked(true)}
                   >
                     Fetch from database (Optional)
@@ -304,7 +312,7 @@ function Overview() {
                             height: '30px',
                           }}
                         >
-                          <MenuItem value={''} disabled>Select Type</MenuItem>
+                          <MenuItem value={''} disabled>Select Material Type</MenuItem>
                           <MenuItem value={'Plastic'}>Plastic</MenuItem>
                           <MenuItem value={'Wood'}>Wood</MenuItem>
                           <MenuItem value={'Metal'}>Metal</MenuItem>
@@ -324,7 +332,7 @@ function Overview() {
                             height: '30px',
                           }}
                         >
-                          <MenuItem value={''} disabled>Select Type</MenuItem>
+                          <MenuItem value={''} disabled>Select Material</MenuItem>
                           {materials.map((material) => (
                             <MenuItem key={material.material} value={material}>{material.material} (CO2 EQ: {material.carbonFootprint})</MenuItem>
                           ))}
@@ -350,11 +358,9 @@ function Overview() {
                 <Grid item xs={6}>
                   <MDBox mb={2}>
                     <MDInput
-                      label="Weight (Kg)"
-                      value={weight}
-                      type='number'
-                      step='0.01'
-                      onChange={e => setWeight(e.target.value)}
+                      label="Production Location"
+                      value={manufacturingAddress}
+                      onChange={e => setManufacturingAddress(e.target.value)}
                       required
                       variant="standard"
                       fullWidth />
@@ -362,7 +368,7 @@ function Overview() {
                 </Grid>
               </Grid>
               <Grid container spacing={3}>
-                <Grid item xs={6}>
+                <Grid item xs={4}>
                   <MDBox mb={2}>
                     <MDInput
                       label="Carbon Footprint"
@@ -375,18 +381,42 @@ function Overview() {
                       fullWidth />
                   </MDBox>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid item xs={4}>
                   <MDBox mb={2}>
                     <MDInput
-                      label="Production Location"
-                      value={manufacturingAddress}
-                      onChange={e => setManufacturingAddress(e.target.value)}
+                      label="Weight (Grams)"
+                      value={weight}
+                      type='number'
+                      step='0.01'
+                      onChange={e => setWeight(e.target.value)}
+                      required
+                      variant="standard"
+                      fullWidth />
+                  </MDBox>
+                </Grid>
+                <Grid item xs={4}>
+                  <MDBox mb={2}>
+                    <MDInput
+                      label="Water usage (meter cube)"
+                      value={water}
+                      type='number'
+                      step='0.01'
+                      onChange={e => setWater(e.target.value)}
                       required
                       variant="standard"
                       fullWidth />
                   </MDBox>
                 </Grid>
               </Grid>
+              <MDBox fullWidth>
+              <MDTypography variant="h6" fontWeight="regular" sx={{display: "block"}}>
+                    Percentage of Renewable Energy utilized in production
+                  </MDTypography>
+                <Stack spacing={2} direction="row" sx={{ mb: 1 }} alignItems="center">
+                 
+                  <Slider aria-label="Volume" valueLabelDisplay="auto" value={energy} onChange={(e) => { setEnergy(e.target.value) }} />
+                </Stack>
+              </MDBox>
 
 
               <MDBox mb={4}>
@@ -415,8 +445,10 @@ function Overview() {
                   label={`ID: ${product.id}`}
                   title={product.productName}
                   description={`Description: ${product.description}`}
-                  weight={`Weight: ${product.weight} Kgs`}
+                  weight={`Weight: ${product.weight} gram`}
                   carbonFootprint={`Carbon Footprint: ${product.carbonFootprint}`}
+                  water={`Water Usage: ${product.water} meter cube`}
+                  energy={`Renewable Energy: ${product.energy}%`}
                   manufacturingAddress={`Manufactured at: ${product.manufacturingAddress}`}
                 />
               </Grid>))}

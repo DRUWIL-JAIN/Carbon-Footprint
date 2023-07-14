@@ -16,7 +16,6 @@ import Icon from "@mui/material/Icon";
 // Material Dashboard 2 React components
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
-import MDAvatar from "components/MDAvatar";
 
 
 // Material Dashboard 2 React example components
@@ -51,7 +50,6 @@ function DashboardNavbar({ absolute, light, isMini }) {
   const [openMenu, setOpenMenu] = useState(false);
   const route = useLocation().pathname.split("/").slice(1);
   const [company, setCompany] = useState("");
-  const type = {"Manufacturer":"factory","Logistics":"direction_car","Retailer":"store"}
 
 
   useEffect(() => {
@@ -155,7 +153,8 @@ function DashboardNavbar({ absolute, light, isMini }) {
             <MDBox color={light ? "white" : "inherit"}>
               <Link to="/authentication/sign-in/basic">
                 <IconButton sx={navbarIconButton} size="small" disableRipple>
-                  <Icon sx={iconsStyle}>{type[company.companyType]}</Icon>
+                  {/* <Icon sx={iconsStyle}>{type[company.companyType]}</Icon> */}
+                  <MDBox component="img" src={company.companyLogo} sx={{width: "40px", height: "40px", borderRadius: "20px"}}/>
                 </IconButton>
               </Link>
               <IconButton

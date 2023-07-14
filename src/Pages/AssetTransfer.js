@@ -556,12 +556,12 @@ const AssetTransfer = ({ isConnected }) => {
             <span>CID: {cid ? cid : 'Waiting...'}</span>
           </div>
           <div>
-            <span>View NFT Metadata: {"https://" + cid + ".ipfs.nftstorage.link"}</span>
+            <span>View NFT Metadata: {"https://ipfs.io/ipfs/" + cid }</span>
             <Button
               disabled={!cid}
               variant="contained"
               color="primary"
-              onClick={() => handleRedirect("https://" + cid + ".ipfs.nftstorage.link")}
+              onClick={() => handleRedirect("https://ipfs.io/ipfs/" + cid)}
             >
               {txHash ? 'Redirect' : 'Waiting...'}
             </Button>

@@ -25,7 +25,7 @@ import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import Footer from "examples/Footer";
 import MasterCard from "examples/Cards/MasterCard";
 import DefaultInfoCard from "examples/Cards/InfoCards/DefaultInfoCard";
-import Header from "layouts/issueToken/components/Header";
+import Header from "layouts/mixNCreate/components/Header";
 
 
 
@@ -252,15 +252,15 @@ function Billing() {
             const burnNFTIds = [];
             const burnNFTAmounts = [];
             for (const b of burners) {
-              burnNFTIds.push(b.id);
+              burnNFTIds.push(String(b.id));
               burnNFTAmounts.push(b.amount);
             }
             setProgress(50);
             setCurrentState("minting");
 
-            console.log(walletAddress, walletAddress, burnNFTIds, String(realTokenId), burnNFTAmounts, mintQuantity);
+            console.log(walletAddress, walletAddress, burnNFTIds, String(realTokenId), burnNFTAmounts, String(mintQuantity));
             const receipt = await contract.methods
-              .burnNmintBatch(walletAddress, walletAddress, burnNFTIds, String(realTokenId), burnNFTAmounts, mintQuantity)
+              .burnNmintBatch(walletAddress, walletAddress, burnNFTIds, String(realTokenId), burnNFTAmounts, String(mintQuantity))
               .send({ from: window.ethereum.selectedAddress });
             setBlockNumber(receipt.blockNumber);
             setTxHash(receipt.transactionHash);
@@ -273,6 +273,10 @@ function Billing() {
             setMessageColor(colors.success);
             openMessage();
             setTokenIssued(true);
+            setTimeout(() => {
+              fetchMintedProducts();
+            }, 3000);
+  
           }
           else {
             setProgress(5);
@@ -280,12 +284,12 @@ function Billing() {
             console.log("No such document!");
             const docRef = doc(db, "Data", "Token");
             const docSnap = await getDoc(docRef);
-
+            const realTokenId = docSnap.data().currentTokenId + 1;
             const burnNFTIds = [];
             const burnNFTAmounts = [];
             for (const b of burners) {
-              burnNFTIds.push(b.id);
-              burnNFTAmounts.push(b.amount);
+              burnNFTIds.push(String(b.id));
+              burnNFTAmounts.push(String(b.amount));
             }
 
             const requests = [];
@@ -295,6 +299,8 @@ function Billing() {
               manufacturer: walletAddress,
             };
             nftJson.totalCarbon = parseFloat(newMyProduct.carbonFootprint);
+            nftJson.water = parseFloat(newMyProduct.water);
+            nftJson.carbonOffset = parseFloat(parseFloat(newMyProduct.carbonFootprint)*parseFloat(newMyProduct.energy)*0.008);
             nftJson.productDetails = {
               productName: newMyProduct.productName,
               description: newMyProduct.description,
@@ -303,6 +309,8 @@ function Billing() {
               carbonFootPrint: parseFloat(newMyProduct.carbonFootprint),
               manufacturingAddress: newMyProduct.manufacturingAddress,
               productImage: newMyProduct.productImage,
+              water: parseFloat(product.water),
+              renewableEnergy: parseFloat(product.energy),
             };
             nftJson.manufacturerDetails = {
               companyName: me.companyName,
@@ -340,22 +348,36 @@ function Billing() {
               .then(async responses => {
                 nftJson.supplies = responses;
                 let totalCarbon = 0;
+                let water = 0;
+                let carbonOffset = 0;
                 for (const supply in nftJson.supplies) {
                   nftJson.supplies[supply].quantity = burners[supply].amount;
                   const totalCarbonOfSupply = (parseFloat(nftJson.supplies[supply].totalCarbon) * parseFloat(burners[supply].amount));
                   console.log(parseFloat(nftJson.supplies[supply].totalCarbon), parseFloat(burners[supply].amount), totalCarbonOfSupply);
                   totalCarbon += totalCarbonOfSupply;
+
+                  const totalWaterOfSupply = (parseFloat(nftJson.supplies[supply].water) * parseFloat(burners[supply].amount));
+                  water += totalWaterOfSupply;
+
+                  const totalCarbonOffsetOfSupply = (parseFloat(nftJson.supplies[supply].carbonOffset) * parseFloat(burners[supply].amount));
+                  carbonOffset += totalCarbonOffsetOfSupply;
                 }
+
                 nftJson.totalCarbon += (totalCarbon / parseFloat(mintQuantity));
+                nftJson.water += (water / parseFloat(mintQuantity));
+                nftJson.carbonOffset += (carbonOffset / parseFloat(mintQuantity));
                 const nftJsonString = JSON.stringify(nftJson);
                 console.log("nftJsonString", nftJson);
+
+                
+
 
                 setProgress(50);
                 setCurrentState("minting");
 
-                console.log(walletAddress, walletAddress, burnNFTIds, String(realTokenId), burnNFTAmounts, mintQuantity);
+                console.log(walletAddress, walletAddress, burnNFTIds, String(realTokenId), burnNFTAmounts,  String(mintQuantity));
                 const receipt = await contract.methods
-                  .burnNmintBatch(walletAddress, walletAddress, burnNFTIds, String(realTokenId), burnNFTAmounts, mintQuantity)
+                  .burnNmintBatch(walletAddress, walletAddress, burnNFTIds, String(realTokenId), burnNFTAmounts, String(mintQuantity))
                   .send({ from: window.ethereum.selectedAddress });
                 setBlockNumber(receipt.blockNumber);
                 setTxHash(receipt.transactionHash);
@@ -370,7 +392,6 @@ function Billing() {
                 setCurrentState("uploading")
                 if (docSnap.exists()) {
                   console.log("Document data:", docSnap.data());
-                  realTokenId = docSnap.data().currentTokenId + 1;
                   await updateDoc(docRef, {
                     currentTokenId: realTokenId
                   });
@@ -385,6 +406,10 @@ function Billing() {
                 setMessageColor(colors.success);
                 openMessage();
                 setTokenIssued(true);
+                setTimeout(() => {
+                  fetchMintedProducts();
+                }, 3000);
+      
               })
               .catch(error => {
                 // Handle errors if any of the requests fail
@@ -490,7 +515,7 @@ function Billing() {
             textAlign="center"
           >
             <MDTypography variant="h4" fontWeight="medium" color="white" mt={1}>
-              Mix and Create
+              Manufacture
             </MDTypography>
           </MDBox>
           <MDBox pt={4} pb={3} px={3}>
@@ -588,7 +613,7 @@ function Billing() {
                 <MDButton variant="gradient" color="success" onClick={handleSubmit} sx={{
                   float: 'right',
                 }}>
-                  Transfer
+                  Issue Token
                 </MDButton>
               </MDBox>
             </MDBox>
@@ -697,7 +722,7 @@ function Billing() {
                     </MDButton>
                   </Grid>
                   <Grid item xs={12} md={6}>
-                    <MDButton variant="gradient" color="success" fullWidth onClick={() => handleRedirect("https://" + cid + ".ipfs.nftstorage.link")}>
+                    <MDButton variant="gradient" color="success" fullWidth onClick={() => handleRedirect("https://ipfs.io/ipfs/" + cid)}>
                       See Token Details
                     </MDButton>
                   </Grid>

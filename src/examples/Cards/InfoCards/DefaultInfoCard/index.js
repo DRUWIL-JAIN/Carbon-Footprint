@@ -1,17 +1,3 @@
-/**
-=========================================================
-* Material Dashboard 2 React - v2.2.0
-=========================================================
-
-* Product Page: https://girhe.com
-* Copyright 2023 Team Golf (https://girhe.com)
-
-Coded by www.creative-tim.com
-
- =========================================================
-
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-*/
 import {useState} from "react";
 // prop-types is library for typechecking of props
 import PropTypes from "prop-types";
@@ -33,7 +19,7 @@ import tokenImg from "assets/images/tokenImg.png";
 function DefaultInfoCard({ color, icon, title, description, value, hash, cid }) {
   const [open, setOpen] = useState(false);
   const handleRedirect = () => {
-    window.open("https://jsoncrack.com/widget?json=https://" + cid + ".ipfs.nftstorage.link", '_blank');
+    window.open("https://jsoncrack.com/widget?json=https://ipfs.io/ipfs/" + cid, '_blank');
   };
   return (
     <Card>
@@ -59,8 +45,8 @@ function DefaultInfoCard({ color, icon, title, description, value, hash, cid }) 
         <QRCode value={cid} psize={256} 
           style={{ height: "80%", maxWidth: "80%", width: "80%", marginTop: "30px", marginBottom: "10px"  }}
           viewBox={`0 0 256 256`} />
-        <MDButton variant="contained" color="success" style={{ width: "80%", marginBottom: "10%" }}>
-          <MDTypography variant="button" color="white" fontWeight="medium" textTransform="capitalize" onClick={handleRedirect}>
+        <MDButton variant="contained" color="success" style={{ width: "80%", marginBottom: "10%" }} onClick={handleRedirect}>
+          <MDTypography variant="button" color="white" fontWeight="medium" textTransform="capitalize">
             View data
           </MDTypography>
         </MDButton>

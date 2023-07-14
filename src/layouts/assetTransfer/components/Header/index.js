@@ -36,7 +36,7 @@ import breakpoints from "assets/theme/base/breakpoints";
 
 // Images
 import burceMars from "assets/images/bruce-mars.jpg";
-import backgroundImage from "assets/images/transportation.jpg";
+import backgroundImage from "assets/images/assetTransfer.jpg";
 
 function Header({ children }) {
   const [tabsOrientation, setTabsOrientation] = useState("horizontal");
