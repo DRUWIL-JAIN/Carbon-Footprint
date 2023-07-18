@@ -520,8 +520,11 @@ function Billing() {
           </MDBox>
           <MDBox pt={4} pb={3} px={3}>
             <MDBox component="form" role="form">
+              <MDTypography variant="h6" fontWeight="medium">
+                Select Product to Manufacture
+              </MDTypography>
               <Grid container spacing={2}>
-                <Grid item xs={12} sm={6} mt={2}>
+                <Grid item xs={12} sm={6} mt={-1}>
                   <MDBox pt={2}>
                     <FormControl fullWidth>
                       <Select
@@ -541,7 +544,7 @@ function Billing() {
                     </FormControl>
                   </MDBox>
                 </Grid>
-                <Grid item xs={12} sm={6} mt={2}>
+                <Grid item xs={12} sm={6} mt={-1}>
                   <MDBox>
                     <MDInput
                       label="Quantity of Product"
@@ -553,8 +556,13 @@ function Billing() {
                       fullWidth />
                   </MDBox>
                 </Grid>
+                <Grid item xs={12} mt={2}>
+                <MDTypography variant="h6" fontWeight="medium">
+                Select supplies used for manufacture
+              </MDTypography>
+                </Grid>
 
-                <Grid item xs={12} sm={6} pb={1}>
+                <Grid item xs={12} sm={6} pb={1} mt={-1}>
                   <MDBox sx={{
                     borderRadius: '10px',
                     borderWidth: '1px',
@@ -571,7 +579,7 @@ function Billing() {
                     ))}
                   </MDBox>
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={12} sm={6} mt={-1}>
                   <MDBox >
                     <FormControl fullWidth>
                       <Select
@@ -613,7 +621,7 @@ function Billing() {
                 <MDButton variant="gradient" color="success" onClick={handleSubmit} sx={{
                   float: 'right',
                 }}>
-                  Issue Token
+                  Manufacture
                 </MDButton>
               </MDBox>
             </MDBox>
