@@ -3,13 +3,13 @@ import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
  
 const firebaseConfig = {
-    apiKey: "AIzaSyA0zcgBJgH0J0r36q6GtIQr4tUl3El0b5k",
-    authDomain: "carbon-footprint-monitor.firebaseapp.com",
-    projectId: "carbon-footprint-monitor",
-    storageBucket: "carbon-footprint-monitor.appspot.com",
-    messagingSenderId: "874486662058",
-    appId: "1:874486662058:web:c318aa8d795fbbbc3a21d3",
-    measurementId: "G-WGME7QQK4T"
+    apiKey: "Add your own API key here",
+    authDomain: "Add your own auth domain here",
+    projectId: "Add your own project id here",
+    storageBucket: "add your own storage bucket here",
+    messagingSenderId: "add your own sender id here",
+    appId: "add your own app id here",
+    measurementId: "add your own measurement id here"
 };
  
 // Initialize Firebase
